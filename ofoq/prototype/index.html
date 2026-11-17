@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>أُفق · مركز التحكم</title>
+<meta name="description" content="النموذج الأولي لأُفق: مركز تحكم يراقب الطاقة الشمسية ويتنبأ بالإنتاج والطلب ويجدول أحمال الحوسبة والتخزين، مع مراجعة بشرية للقرارات الحساسة.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: an operator console. Side nav + one live canvas of the plant; every number has a source, a forecast and a decision behind it. */
+:root{
+  --bg:#070B12;          /* content floor */
+  --rail:#0A1019;        /* side nav, toolbars */
+  --card:#0E1520;        /* panels */
+  --line:#1C2633;        /* borders */
+  --text:#E8ECF1;        /* primary */
+  --dim:#94A2B3;         /* secondary (7:1 on bg) */
+  --sun:#FFB238;--compute:#3FE0F0;--cell:#B08CFF;--grid:#FF5A5F;--ok:#3DDC97;--warn:#F5C04A;
+  --font:"IBM Plex Sans Arabic",system-ui,"Segoe UI",Tahoma,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+::selection{background:rgba(255,178,56,.35)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--sun);outline-offset:2px;border-radius:6px}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;direction:ltr;unicode-bidi:isolate}
+h1,h2,h3{margin:0;font-weight:600;line-height:1.3}
+p{margin:0}
+
+.app{display:grid;grid-template-columns:232px 1fr;min-height:100vh}
+/* side nav */
+.side{background:var(--rail);border-inline-end:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
+.logo{display:flex;align-items:center;gap:10px;padding:4px 8px}
+.logo svg{width:34px;height:34px;flex:none}
+.logo b{display:block;font-size:16px}
+.logo small{display:block;color:var(--dim);font-size:12px;font-family:var(--mono);direction:ltr;text-align:right}
+.nav{display:grid;gap:2px}
+.nav .grp{font-size:12px;color:var(--dim);padding:8px 10px 4px}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--dim);text-decoration:none;min-height:40px;transition:background .15s,color .15s}
+.nav a svg{width:18px;height:18px;flex:none}
+.nav a:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.nav a[aria-current="page"]{background:rgba(255,178,56,.1);color:var(--text)}
+.nav a[aria-current="page"] svg{color:var(--sun)}
+.nav .badge{margin-inline-start:auto;font-family:var(--mono);font-size:11px;background:var(--grid);color:#fff;border-radius:999px;padding:0 7px;line-height:18px}
+.side-foot{margin-top:auto;font-size:12px;color:var(--dim);border-top:1px solid var(--line);padding:12px 8px 0}
+
+/* top bar */
+.main{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 22px;background:rgba(7,11,18,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top h1{font-size:16px}
+.top .sub{color:var(--dim);font-size:12px}
+.spacer{flex:1}
+.status{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(61,220,151,.35);background:rgba(61,220,151,.08);color:var(--ok);border-radius:999px;padding:4px 12px;font-size:12px}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px rgba(61,220,151,.18)}
+.status.warn{color:var(--warn);border-color:rgba(245,192,74,.4);background:rgba(245,192,74,.08)}
+.clock{font-size:12px;color:var(--dim)}
+.clock b{color:var(--text);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 12px;min-height:36px;cursor:pointer;transition:border-color .15s,background .15s}
+.btn:hover{border-color:#2d3a4b}
+.btn svg{width:14px;height:14px}
+.btn.primary{background:var(--sun);border-color:var(--sun);color:#1c1204;font-weight:600}
+.btn.ghost{background:transparent}
+.btn.danger{color:#ffb3b5;border-color:rgba(255,90,95,.4)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.sel{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 10px;min-height:36px}
+.menu-btn{display:none}
+
+.view{padding:22px;display:grid;gap:16px;align-content:start}
+.view[hidden]{display:none}
+.vh{display:flex;align-items:end;gap:14px;flex-wrap:wrap}
+.vh h2{font-size:22px}
+.vh p{color:var(--dim)}
+.sim-tag{font-family:var(--mono);font-size:11px;color:var(--sun);border:1px solid rgba(255,178,56,.4);border-radius:5px;padding:1px 6px;letter-spacing:.06em}
+
+/* cards */
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g21{grid-template-columns:2fr 1fr}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.card h3{font-size:14px;display:flex;align-items:center;gap:8px}
+.card h3 .mono{margin-inline-start:auto;font-size:12px;color:var(--dim);font-weight:400}
+.kpi{position:relative;overflow:hidden}
+.kpi .lab{color:var(--dim);font-size:12px;display:flex;align-items:center;gap:6px}
+.kpi .lab i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.kpi .val{font-family:var(--mono);font-size:30px;font-weight:500;margin-top:6px;direction:ltr;text-align:right;line-height:1.1}
+.kpi .val small{font-size:13px;color:var(--dim);margin-inline-start:4px}
+.kpi .meta{color:var(--dim);font-size:12px;margin-top:4px}
+.kpi .spark{display:block;width:100%;height:34px;margin-top:8px}
+.kpi::after{content:"";position:absolute;top:0;inset-inline:0;height:2px;background:var(--c)}
+canvas.chart{display:block;width:100%;height:260px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.legend i.dash{height:0;border-top:2px dashed currentColor;border-radius:0;width:14px}
+
+/* decision feed */
+.feed{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:8px;max-height:320px;overflow:auto}
+.feed li{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:start;padding:10px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.015)}
+.feed .t{font-size:12px;color:var(--dim);padding-top:2px}
+.feed b{font-weight:600}
+.feed p{color:var(--dim);font-size:13px;margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;border-radius:999px;padding:1px 8px;border:1px solid currentColor;line-height:18px;white-space:nowrap}
+.chip.auto{color:var(--ok)}.chip.review{color:var(--warn)}.chip.rej{color:var(--grid)}.chip.info{color:var(--dim)}
+.feed .acts{display:flex;gap:6px;margin-top:8px}
+
+/* gauge, table */
+.gauge{display:grid;place-items:center;position:relative}
+.gauge svg{width:180px;height:180px}
+.gauge .c{position:absolute;text-align:center}
+.gauge .c b{font-family:var(--mono);font-size:34px;font-weight:500;display:block}
+.gauge .c span{color:var(--dim);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--dim);font-weight:500;font-size:12px}
+.tbl{overflow-x:auto}
+.bar{height:6px;border-radius:6px;background:var(--line);overflow:hidden;min-width:80px}
+.bar i{display:block;height:100%;border-radius:6px;background:var(--compute)}
+.rowlist{display:grid;gap:10px;margin-top:10px}
+.rowlist div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-bottom:8px;color:var(--dim)}
+.rowlist b{color:var(--text);font-weight:500}
+
+/* gantt */
+.gantt{position:relative;margin-top:12px}
+.gantt .over{position:absolute;inset-block:0;left:0;width:calc(100% - 160px);pointer-events:none}
+.gantt .lane{display:grid;grid-template-columns:150px 1fr;align-items:center;gap:10px;min-height:34px}
+.gantt .lane span{font-size:12px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gantt .track{position:relative;height:22px;background:rgba(255,255,255,.02);border-radius:6px;direction:ltr}
+.gantt .job{position:absolute;top:2px;bottom:2px;border-radius:5px;background:rgba(63,224,240,.35);border:1px solid rgba(63,224,240,.8);font-size:11px;color:#dffbff;padding:0 6px;white-space:nowrap;overflow:hidden;line-height:16px;font-family:var(--mono)}
+.gantt .job.crit{background:rgba(232,236,241,.18);border-color:rgba(232,236,241,.5);color:var(--text)}
+.gantt .solarband{position:absolute;top:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(255,178,56,.12) 25%,rgba(255,178,56,.12) 75%,transparent);pointer-events:none;direction:ltr}
+.gantt .nowline{position:absolute;top:0;bottom:0;width:1px;background:var(--sun);pointer-events:none}
+.axis{display:grid;grid-template-columns:150px 1fr;gap:10px;font-size:11px;color:var(--dim)}
+.axis div{display:flex;justify-content:space-between;direction:ltr}
+
+/* controls */
+.field{display:grid;gap:6px;padding:12px 0;border-bottom:1px solid var(--line)}
+.field:last-child{border-bottom:0}
+.field label{display:flex;justify-content:space-between;gap:10px;font-weight:500}
+.field label .num{color:var(--sun)}
+.field small{color:var(--dim)}
+input[type=range]{width:100%;accent-color:var(--sun);height:28px}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.switch:last-child{border-bottom:0}
+.switch span small{display:block;color:var(--dim);font-weight:400}
+.switch input{appearance:none;width:42px;height:24px;border-radius:999px;background:#253041;position:relative;cursor:pointer;flex:none;transition:background .2s}
+.switch input::after{content:"";position:absolute;top:3px;inset-inline-start:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:inset-inline-start .2s}
+.switch input:checked{background:var(--sun)}
+.switch input:checked::after{inset-inline-start:21px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px;background:var(--rail)}
+.seg button{border:0;background:transparent;border-radius:6px;padding:5px 12px;min-height:32px;cursor:pointer;color:var(--dim)}
+.seg button[aria-pressed="true"]{background:var(--text);color:var(--bg);font-weight:600}
+
+/* alerts */
+.alerts{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.alerts li{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.alerts li .sev{width:10px;height:10px;border-radius:50%}
+.alerts li p{color:var(--dim);font-size:13px}
+.empty{color:var(--dim);text-align:center;padding:30px;border:1px dashed var(--line);border-radius:12px}
+
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(-6px)}
+.note{color:var(--dim);font-size:12px}
+
+@media (max-width:1180px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g21{grid-template-columns:1fr}}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;inset-block:0;inset-inline-start:0;width:260px;z-index:20;transform:translateX(100%);transition:transform .2s;height:100vh}
+  .side.open{transform:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.5)}
+  .menu-btn{display:inline-flex}
+  .g3,.g2{grid-template-columns:1fr}
+  .top .clock{display:none}
+  .view{padding:16px}
+}
+@media (max-width:520px){.g4{grid-template-columns:1fr}.gantt .lane,.axis{grid-template-columns:96px 1fr}.gantt .over{width:calc(100% - 106px)}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-dash" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-bat" viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M21 10.5v3M6 10v4M9.5 10v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="9.5" y="9.5" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-ai" viewBox="0 0 24 24"><path d="M4 18l5-6 4 3 7-9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 18l5-6 4 3 7-9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-dasharray="2 3" transform="translate(0 3)" opacity=".5"/></symbol>
+  <symbol id="i-ctrl" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="9" cy="6" r="2" fill="var(--rail)" stroke="currentColor" stroke-width="1.7"/><circle cx="15" cy="12" r="2" fill="var(--rail)" stroke="currentColor" stroke-width="1.7"/><circle cx="8" cy="18" r="2" fill="var(--rail)" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M10 20.5a2 2 0 0 0 4 0" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5v14l11-7z" fill="currentColor"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="i-person" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M4.5 20c1.2-3.6 4.1-5.4 7.5-5.4s6.3 1.8 7.5 5.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="side" id="side" aria-label="القائمة الرئيسية">
+    <div class="logo">
+      <svg viewBox="0 0 34 34" aria-hidden="true"><rect width="34" height="34" rx="9" fill="#0E1520" stroke="#1C2633"/><circle cx="17" cy="19" r="6" fill="#FFB238"/><rect x="5" y="19" width="24" height="9" fill="#0E1520"/><path d="M5 19h24" stroke="#E8ECF1" stroke-width="1.3"/></svg>
+      <div><b>أُفق</b><small>Predict · Optimize · Control</small></div>
+    </div>
+    <nav class="nav" aria-label="أقسام المنصة">
+      <span class="grp">نظام التحكم</span>
+      <a href="#dashboard" data-v="dashboard"><svg aria-hidden="true"><use href="#i-dash"/></svg>لوحة القيادة</a>
+      <a href="#energy" data-v="energy"><svg aria-hidden="true"><use href="#i-sun"/></svg>الطاقة</a>
+      <a href="#storage" data-v="storage"><svg aria-hidden="true"><use href="#i-bat"/></svg>التخزين</a>
+      <a href="#computing" data-v="computing"><svg aria-hidden="true"><use href="#i-cpu"/></svg>الحوسبة</a>
+      <a href="#predictions" data-v="predictions"><svg aria-hidden="true"><use href="#i-ai"/></svg>تنبؤات الذكاء الاصطناعي</a>
+      <a href="#control" data-v="control"><svg aria-hidden="true"><use href="#i-ctrl"/></svg>التحكم الذكي</a>
+      <a href="#alerts" data-v="alerts"><svg aria-hidden="true"><use href="#i-bell"/></svg>التنبيهات<span class="badge" id="navBadge" hidden>0</span></a>
+      <a href="#settings" data-v="settings"><svg aria-hidden="true"><use href="#i-gear"/></svg>الإعدادات</a>
+    </nav>
+    <div class="side-foot">موقع تجريبي: مركز بيانات بقدرة شمسية 10 MW<br><span class="sim-tag">SIMULATED DATA</span></div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <button class="btn ghost menu-btn" id="menuBtn" aria-label="فتح القائمة" aria-controls="side" aria-expanded="false"><svg aria-hidden="true"><use href="#i-menu"/></svg></button>
+      <div><h1>مركز تحكم أُفق</h1><div class="sub">إدارة الطاقة الشمسية والتخزين والحوسبة بالذكاء الاصطناعي</div></div>
+      <span class="spacer"></span>
+      <span class="status" id="sysStatus" role="status">النظام يعمل</span>
+      <span class="clock"><span class="num" id="wall">--:--:--</span> · ساعة المحطة <b class="num" id="plant">00:00</b> · دورة <b class="num" id="cycle">0</b></span>
+      <button class="btn" id="pauseBtn" aria-pressed="false"><svg aria-hidden="true"><use href="#i-pause"/></svg><span>إيقاف مؤقت</span></button>
+    </header>
+
+    <!-- DASHBOARD -->
+    <section class="view" id="v-dashboard" aria-labelledby="h-dash">
+      <div class="vh"><h2 id="h-dash">تنبّأ. حسّن. تحكّم.</h2><p>أُفق يربط الطاقة المتجددة بالحوسبة الذكية.</p><span class="sim-tag">SIMULATION</span></div>
+      <div class="grid g4">
+        <div class="card kpi" style="--c:var(--sun)"><div class="lab"><i style="background:var(--sun)"></i>التوليد الشمسي</div><div class="val"><span id="kSolar">0.0</span><small>MW</small></div><div class="meta">المتوقع بعد 3 ساعات: <span class="num" id="kSolarF">0.0 MW</span></div><canvas class="spark" id="sp0" aria-hidden="true"></canvas></div>
+        <div class="card kpi" style="--c:#E8ECF1"><div class="lab"><i style="background:#E8ECF1"></i>الطلب على الطاقة</div><div class="val"><span id="kDemand">0.0</span><small>MW</small></div><div class="meta">حرج <span class="num" id="kCrit">0.0</span> · مرن <span class="num" id="kFlex">0.0</span></div><canvas class="spark" id="sp1" aria-hidden="true"></canvas></div>
+        <div class="card kpi" style="--c:var(--cell)"><div class="lab"><i style="background:var(--cell)"></i>حالة البطارية</div><div class="val"><span id="kSoc">0</span><small>%</small></div><div class="meta" id="kBatMode">—</div><canvas class="spark" id="sp2" aria-hidden="true"></canvas></div>
+        <div class="card kpi" style="--c:var(--compute)"><div class="lab"><i style="background:var(--compute)"></i>حِمل الحوسبة</div><div class="val"><span id="kLoad">0</span><small>%</small></div><div class="meta">هامش مرن <span class="num" id="kHead">0%</span></div><canvas class="spark" id="sp3" aria-hidden="true"></canvas></div>
+      </div>
+      <div class="grid g21">
+        <div class="card"><h3>توازن الطاقة اليوم <span class="mono" id="balanceNow"></span></h3>
+          <canvas class="chart" id="cBalance" role="img" aria-label="رسم التوليد الشمسي والطلب والبطارية والشبكة خلال اليوم"></canvas>
+          <div class="legend"><span><i style="background:var(--sun)"></i>شمسي</span><span><i style="background:rgba(232,236,241,.5)"></i>أحمال حرجة + تبريد</span><span><i style="background:var(--compute)"></i>حوسبة مرنة</span><span><i style="background:var(--cell)"></i>تفريغ البطارية</span><span><i style="background:var(--grid)"></i>الشبكة</span><span style="color:var(--sun)"><i class="dash"></i>التنبؤ</span></div>
+        </div>
+        <div class="card"><h3>قرارات أُفق <span class="mono" id="decCount">0</span></h3>
+          <ul class="feed" id="feedDash" aria-live="polite"></ul>
+        </div>
+      </div>
+      <div class="grid g3">
+        <div class="card"><h3>اليوم حتى الآن</h3><div class="rowlist">
+          <div><span>استغلال الطاقة الشمسية</span><b class="num" id="tUse">—</b></div>
+          <div><span>كهرباء من الشبكة</span><b class="num" id="tGrid">—</b></div>
+          <div><span>فائض شمسي مهدر</span><b class="num" id="tWaste">—</b></div>
+          <div><span>مهام مرنة منجزة</span><b class="num" id="tJobs">—</b></div></div></div>
+        <div class="card"><h3>التبريد</h3><div class="rowlist">
+          <div><span>حمل التبريد</span><b class="num" id="cool">—</b></div>
+          <div><span>درجة الحرارة الخارجية</span><b class="num" id="ambient">—</b></div>
+          <div><span>وضع التبريد</span><b id="coolMode">—</b></div></div></div>
+        <div class="card"><h3><svg width="18" height="18" aria-hidden="true" style="color:var(--warn)"><use href="#i-person"/></svg>بانتظار موافقتك</h3><div id="pendingDash" class="rowlist"></div></div>
+      </div>
+    </section>
+
+    <!-- ENERGY -->
+    <section class="view" id="v-energy" aria-labelledby="h-en" hidden>
+      <div class="vh"><h2 id="h-en">الطاقة</h2><p>من أين تأتي كل ميجاواط الآن، وإلى أين تذهب.</p></div>
+      <div class="grid g3">
+        <div class="card kpi" style="--c:var(--sun)"><div class="lab">الإشعاع الشمسي</div><div class="val"><span id="eIrr">0</span><small>W/m²</small></div><div class="meta" id="eWeather">—</div></div>
+        <div class="card kpi" style="--c:var(--ok)"><div class="lab">كفاءة الألواح</div><div class="val"><span id="eEff">0</span><small>%</small></div><div class="meta">تتأثر بالحرارة والغبار</div></div>
+        <div class="card kpi" style="--c:var(--grid)"><div class="lab">السحب من الشبكة</div><div class="val"><span id="eGrid">0.0</span><small>MW</small></div><div class="meta" id="eGridNote">—</div></div>
+      </div>
+      <div class="card"><h3>مصادر الطاقة لكل ربع ساعة</h3><canvas class="chart" id="cSources" style="height:300px" role="img" aria-label="مصادر تغطية الطلب: شمسي مباشر، بطارية، شبكة"></canvas>
+        <div class="legend"><span><i style="background:var(--sun)"></i>شمسي مباشر</span><span><i style="background:var(--cell)"></i>من البطارية</span><span><i style="background:var(--grid)"></i>من الشبكة</span><span><i style="background:rgba(255,90,95,.25);outline:1px dashed var(--grid)"></i>فائض مهدر</span></div></div>
+    </section>
+
+    <!-- STORAGE -->
+    <section class="view" id="v-storage" aria-labelledby="h-st" hidden>
+      <div class="vh"><h2 id="h-st">التخزين</h2><p>بطارية 12 MWh بقدرة 3 MW، مع احتياطي محمي للأحمال الحرجة.</p></div>
+      <div class="grid g21">
+        <div class="card"><h3>مستوى الشحن خلال اليوم</h3><canvas class="chart" id="cSoc" role="img" aria-label="منحنى مستوى شحن البطارية مع خط الاحتياطي"></canvas>
+          <div class="legend"><span><i style="background:var(--cell)"></i>مستوى الشحن</span><span style="color:var(--warn)"><i class="dash"></i>الاحتياطي المحمي</span></div></div>
+        <div class="card gauge"><svg viewBox="0 0 180 180" aria-hidden="true"><circle cx="90" cy="90" r="74" fill="none" stroke="#1C2633" stroke-width="14"/><circle id="socArc" cx="90" cy="90" r="74" fill="none" stroke="#B08CFF" stroke-width="14" stroke-linecap="round" stroke-dasharray="465" stroke-dashoffset="465" transform="rotate(-90 90 90)"/></svg>
+          <div class="c"><b class="num" id="gSoc">0%</b><span id="gMode">—</span></div></div>
+      </div>
+      <div class="grid g3">
+        <div class="card"><h3>الطاقة المخزّنة</h3><div class="rowlist"><div><span>الآن</span><b class="num" id="sNow">—</b></div><div><span>الاحتياطي المحمي</span><b class="num" id="sRes">—</b></div><div><span>المتاح للتشغيل</span><b class="num" id="sAvail">—</b></div></div></div>
+        <div class="card"><h3>اليوم</h3><div class="rowlist"><div><span>شُحن من الشمس</span><b class="num" id="sCh">—</b></div><div><span>فُرّغ للأحمال</span><b class="num" id="sDis">—</b></div><div><span>دورات مكافئة</span><b class="num" id="sCyc">—</b></div></div></div>
+        <div class="card"><h3>صحة البطارية</h3><div class="rowlist"><div><span>الحرارة</span><b class="num" id="sTemp">—</b></div><div><span>حد الشحن</span><b class="num">3.0 MW</b></div><div><span>الحالة</span><b id="sHealth">سليمة</b></div></div></div>
+      </div>
+    </section>
+
+    <!-- COMPUTING -->
+    <section class="view" id="v-computing" aria-labelledby="h-cp" hidden>
+      <div class="vh"><h2 id="h-cp">الحوسبة</h2><p>الأحمال الحرجة لا تتوقف. الأحمال المرنة تُجدول حول الشمس.</p></div>
+      <div class="card"><h3>جدول المهام اليوم <span class="mono">00:00 → 24:00</span></h3>
+        <div class="gantt" id="gantt"></div>
+        <div class="axis"><span></span><div><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div></div>
+        <p class="note" style="margin-top:8px">المنطقة المظلّلة بالأصفر = نافذة الإنتاج الشمسي. الخط الأصفر = ساعة المحطة الآن.</p></div>
+      <div class="card"><h3>قائمة المهام المرنة</h3><div class="tbl"><table>
+        <thead><tr><th>المهمة</th><th>النوع</th><th>الطاقة</th><th>الموعد النهائي</th><th>التقدم</th><th>الحالة</th></tr></thead>
+        <tbody id="jobsBody"></tbody></table></div></div>
+    </section>
+
+    <!-- PREDICTIONS -->
+    <section class="view" id="v-predictions" aria-labelledby="h-pr" hidden>
+      <div class="vh"><h2 id="h-pr">تنبؤات الذكاء الاصطناعي</h2><p>توقع الإنتاج والطلب للساعات القادمة، ومقارنته بالفعلي.</p></div>
+      <div class="grid g3">
+        <div class="card kpi" style="--c:var(--sun)"><div class="lab">ذروة الإنتاج المتوقعة اليوم</div><div class="val"><span id="pPeak">0.0</span><small>MW</small></div><div class="meta">عند <span class="num" id="pPeakAt">--:--</span></div></div>
+        <div class="card kpi" style="--c:var(--ok)"><div class="lab">دقة التنبؤ (آخر 3 ساعات)</div><div class="val"><span id="pAcc">—</span><small>%</small></div><div class="meta">1 − متوسط الخطأ النسبي</div></div>
+        <div class="card kpi" style="--c:var(--compute)"><div class="lab">فائض متوقع خلال 3 ساعات</div><div class="val"><span id="pSurplus">0.0</span><small>MWh</small></div><div class="meta">فرصة لجدولة مهام مرنة</div></div>
+      </div>
+      <div class="card"><h3>الإنتاج الشمسي: الفعلي مقابل المتوقع</h3><canvas class="chart" id="cForecast" role="img" aria-label="الإنتاج الفعلي حتى الآن والتنبؤ مع نطاق الثقة للساعات القادمة"></canvas>
+        <div class="legend"><span><i style="background:var(--sun)"></i>فعلي</span><span style="color:var(--sun)"><i class="dash"></i>متوقع</span><span><i style="background:rgba(255,178,56,.18)"></i>نطاق الثقة</span></div></div>
+      <p class="note">التنبؤ هنا نموذج توضيحي: منحنى الإشعاع النظري لموقع الرياض معدّل بظروف الطقس المختارة، مع ضجيج عشوائي. في النسخة الفعلية يُدرَّب على بيانات الموقع.</p>
+    </section>
+
+    <!-- CONTROL -->
+    <section class="view" id="v-control" aria-labelledby="h-ct" hidden>
+      <div class="vh"><h2 id="h-ct">التحكم الذكي</h2><p>قواعد التشغيل التي يلتزم بها وكلاء أُفق. التغيير يُطبّق فورًا على المحاكاة.</p></div>
+      <div class="grid g2">
+        <div class="card"><h3>سياسات التشغيل</h3>
+          <div class="field"><label for="rReserve">احتياطي البطارية المحمي <span class="num" id="vReserve">20%</span></label><input id="rReserve" type="range" min="10" max="60" step="5" value="20"><small>لا تُفرَّغ البطارية تحت هذا الحد إلا لحالة طوارئ.</small></div>
+          <div class="field"><label for="rFlex">أقصى حِمل مرن <span class="num" id="vFlex">3.0 MW</span></label><input id="rFlex" type="range" min="1" max="5" step=".5" value="3"><small>سقف الطاقة المخصصة لتدريب النماذج والمهام المؤجلة.</small></div>
+          <div class="field"><label for="rCool">هامش التبريد <span class="num" id="vCool">10%</span></label><input id="rCool" type="range" min="0" max="30" step="5" value="10"><small>طاقة إضافية محجوزة للتبريد في ساعات الحرارة.</small></div>
+        </div>
+        <div class="card"><h3>الصلاحيات</h3>
+          <label class="switch"><span>جدولة الأحمال المرنة تلقائيًا<small>يحرّك أُفق المهام إلى نافذة الشمس بدون تدخل.</small></span><input type="checkbox" id="swAutoFlex" checked></label>
+          <label class="switch"><span>شحن البطارية من الفائض تلقائيًا<small>أي فائض شمسي يذهب للبطارية قبل أن يُهدر.</small></span><input type="checkbox" id="swAutoCharge" checked></label>
+          <label class="switch"><span>مراجعة بشرية للقرارات الحساسة<small>تفريغ تحت الاحتياطي، أو الاعتماد الكبير على الشبكة، ينتظر موافقتك.</small></span><input type="checkbox" id="swReview" checked></label>
+          <label class="switch"><span>تشغيل أُفق<small>عند الإيقاف: لا تنسيق، الفائض يُهدر والعجز من الشبكة.</small></span><input type="checkbox" id="swOfoq" checked></label>
+        </div>
+      </div>
+      <div class="card"><h3><svg width="18" height="18" aria-hidden="true" style="color:var(--warn)"><use href="#i-person"/></svg>قرارات بانتظار المراجعة البشرية</h3><div id="pendingFull" class="rowlist"></div></div>
+    </section>
+
+    <!-- ALERTS -->
+    <section class="view" id="v-alerts" aria-labelledby="h-al" hidden>
+      <div class="vh"><h2 id="h-al">التنبيهات</h2><p>كل ما يحتاج انتباه المشغّل، بالأحدث أولًا.</p><span class="spacer"></span><button class="btn ghost" id="clearAlerts">تعليم الكل كمقروء</button></div>
+      <ul class="alerts" id="alertList"></ul>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="v-settings" aria-labelledby="h-se" hidden>
+      <div class="vh"><h2 id="h-se">الإعدادات</h2><p>ظروف المحاكاة وسرعتها.</p></div>
+      <div class="grid g2">
+        <div class="card"><h3>ظروف اليوم</h3>
+          <div class="field"><span>الطقس</span><div class="seg" role="group" aria-label="الطقس" id="segWeather"><button data-w="clear" aria-pressed="true">صافٍ</button><button data-w="dust" aria-pressed="false">غبار</button><button data-w="heat" aria-pressed="false">صيف حار</button></div><small>الغبار يقلل الإنتاج نحو 38%. الحر يقلل كفاءة الألواح ويرفع التبريد.</small></div>
+          <div class="field"><span>سرعة المحاكاة</span><div class="seg" role="group" aria-label="سرعة المحاكاة" id="segSpeed"><button data-s="1" aria-pressed="false">بطيئة</button><button data-s="3" aria-pressed="true">عادية</button><button data-s="8" aria-pressed="false">سريعة</button></div></div>
+          <div class="field"><span>بداية جديدة</span><div><button class="btn" id="resetBtn">إعادة اليوم من 00:00</button></div></div>
+        </div>
+        <div class="card"><h3>عن النموذج الأولي</h3><div class="rowlist">
+          <div><span>الموقع</span><b>الرياض · 24.7°N</b></div>
+          <div><span>الذروة الشمسية</span><b class="num">10 MW</b></div>
+          <div><span>الأحمال الحرجة</span><b class="num">4.3 MW + cooling</b></div>
+          <div><span>المهام المرنة</span><b class="num">18 MWh / day</b></div>
+          <div><span>البطارية</span><b class="num">12 MWh · 3 MW</b></div></div>
+          <p class="note" style="margin-top:12px">كل الأرقام محاكاة لأغراض العرض. أُفق مشروع فردي لأمل المطيري، سبتمبر 2026.</p></div>
+      </div>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const fmt=(v,d=1)=>(Math.round(v*Math.pow(10,d))/Math.pow(10,d)).toFixed(d);
+const hhmm=i=>{const m=i*15;return String(Math.floor(m/60)%24).padStart(2,'0')+':'+String(m%60).padStart(2,'0')};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ───────── configuration ───────── */
+const N=96,DT=.25,PEAK=10,CRIT=4.3,BCAP=12,BPOW=3;
+const WX={clear:{k:1,cool:0,name:'سماء صافية',temp:34},dust:{k:.62,cool:.1,name:'عاصفة غبار',temp:36},heat:{k:.94,cool:.7,name:'صيف حار',temp:46}};
+const cfg={reserve:.2,flexMax:3,coolMargin:.1,autoFlex:true,autoCharge:true,review:true,ofoq:true,weather:'clear',speed:3};
+
+/* jobs: flexible compute work for the day */
+const JOBS0=[
+  {id:'J-101',name:'تدريب نموذج لغوي (دفعة 7)',kind:'تدريب',mwh:6,max:2.2,deadline:24},
+  {id:'J-102',name:'إعادة فهرسة مستودع البيانات',kind:'معالجة',mwh:3,max:1.2,deadline:20},
+  {id:'J-103',name:'محاكاة تبريد الصيف',kind:'محاكاة',mwh:2.5,max:1,deadline:22},
+  {id:'J-104',name:'ضغط النسخ الاحتياطية',kind:'معالجة',mwh:2,max:.8,deadline:18},
+  {id:'J-105',name:'ضبط دقيق لنموذج الرؤية',kind:'تدريب',mwh:4.5,max:1.8,deadline:24}];
+
+/* ───────── state ───────── */
+let S;
+function reset(){
+  // deterministic-ish noise per day
+  let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+  const noise=[...Array(N)].map(()=>1+(rnd()-.5)*.12);
+  S={i:0,cycle:0,paused:false,noise,
+    solar:Array(N).fill(null),crit:Array(N).fill(null),flex:Array(N).fill(null),dis:Array(N).fill(null),ch:Array(N).fill(null),grid:Array(N).fill(null),waste:Array(N).fill(null),soc:Array(N).fill(null),fc:Array(N).fill(null),
+    socNow:.45*BCAP,jobs:JOBS0.map(j=>({...j,done:0,state:'waiting'})),decisions:[],pending:[],alerts:[],unread:0,lastMode:'',decN:0};
+  addAlert('info','بدأ يوم تشغيل جديد','الظروف: '+WX[cfg.weather].name+'.');
+}
+const theory=i=>{const t=i*DT;return t<6||t>18?0:PEAK*Math.pow(Math.sin(Math.PI*(t-6)/12),1.3)};
+const solarActual=i=>theory(i)*WX[cfg.weather].k*S.noise[i]*(cfg.weather==='heat'?1:1);
+const forecast=i=>theory(i)*WX[cfg.weather].k;
+const ambient=i=>{const t=i*DT;return WX[cfg.weather].temp-9+9*Math.max(0,Math.cos(Math.PI*(t-15)/12))};
+const coolLoad=i=>{const t=i*DT;return (.8+(.5+WX[cfg.weather].cool)*Math.max(0,Math.cos(Math.PI*(t-15)/12)))*(1+cfg.coolMargin)};
+
+/* ───────── decision engine (one tick = 15 min) ───────── */
+function tick(){
+  const i=S.i,sol=solarActual(i),crit=CRIT+coolLoad(i),hour=i*DT;
+  S.fc[i]=forecast(i);
+  // forecast surplus over the next 3 h decides whether to hold flexible work
+  let fSur=0;for(let k=1;k<=12&&i+k<N;k++)fSur+=Math.max(0,forecast(i+k)-(CRIT+coolLoad(i+k)))*DT;
+  let flex=0,ch=0,dis=0,grid=0,waste=0,mode,detail,tag='auto';
+  const surplus=sol-crit, reserveE=cfg.reserve*BCAP;
+  const active=S.jobs.filter(j=>j.done<j.mwh);
+  if(!cfg.ofoq){
+    // no orchestration: flexible work spread evenly, nothing stored
+    const want=active.reduce((a,j)=>a+Math.min(j.max,(j.mwh-j.done)/Math.max(DT,(24-hour))),0);flex=Math.min(cfg.flexMax,want);
+    const net=sol-crit-flex;if(net>=0)waste=net;else grid=-net;
+    mode='بدون تنسيق';detail=net>=0?'الفائض الشمسي يُهدر':'العجز يُسحب من الشبكة';tag='info';
+  } else {
+    // 1. how much flexible work to run now
+    const urgent=active.filter(j=>(j.mwh-j.done)/Math.max(.25,j.deadline-hour)>j.max*.85);
+    const urgentMW=urgent.reduce((a,j)=>a+Math.min(j.max,(j.mwh-j.done)/DT),0);
+    let room=Math.max(0,surplus);
+    if(cfg.autoFlex){
+      if(room>.2)flex=Math.min(cfg.flexMax,room*.75,active.reduce((a,j)=>a+Math.min(j.max,(j.mwh-j.done)/DT),0));
+      else if(fSur<1.5&&hour>=18)flex=Math.min(cfg.flexMax,.6+active.reduce((a,j)=>a+Math.min(j.max,(j.mwh-j.done)/DT),0)*.25);
+      flex=Math.max(flex,Math.min(cfg.flexMax,urgentMW));
+    } else flex=Math.min(cfg.flexMax,urgentMW);
+    const net=sol-crit-flex;
+    if(net>0){
+      ch=cfg.autoCharge?Math.min(net,BPOW,(BCAP-S.socNow)/DT):0;S.socNow+=ch*DT;waste=net-ch;
+      mode=flex>.3&&ch>.05?'وفرة: تشغيل المهام المرنة وشحن البطارية':flex>.3?'وفرة: تشغيل المهام المرنة':ch>.05?'وفرة: شحن البطارية':'البطارية ممتلئة';
+      detail=`فائض ${fmt(net)} MW بعد الأحمال الحرجة.`;
+    } else {
+      const need=-net,avail=Math.max(0,(S.socNow-reserveE)/DT);dis=Math.min(need,BPOW,avail);S.socNow-=dis*DT;grid=need-dis;
+      mode=dis>.05?'انخفاض: البطارية تغذّي الأحمال':flex>.3?'تشغيل مهام قرب موعدها النهائي':'تأجيل المهام غير العاجلة';
+      detail=dis>.05?`تفريغ ${fmt(dis)} MW مع الحفاظ على احتياطي ${Math.round(cfg.reserve*100)}%.`:`الشبكة تغطي ${fmt(grid)} MW للأحمال الحرجة.`;
+      // sensitive: heavy grid draw while reserve is held → ask the human
+      if(cfg.review&&grid>2.5&&S.socNow>reserveE*.9&&!S.pending.some(p=>p.kind==='reserve')){
+        queue({kind:'reserve',title:'السماح بالتفريغ تحت الاحتياطي',why:`الشبكة تغطي ${fmt(grid)} MW. التفريغ حتى 10% يوفّر ${fmt(Math.min(BPOW,(S.socNow-.1*BCAP)/DT))} MW لكنه يقلل هامش الطوارئ.`,at:i});
+      }
+      if(!cfg.review&&grid>2.5&&S.socNow>.1*BCAP){const extra=Math.min(grid,BPOW-dis,(S.socNow-.1*BCAP)/DT);S.socNow-=extra*DT;dis+=extra;grid-=extra}
+    }
+  }
+  // advance jobs proportionally (earliest deadline first)
+  let e=flex*DT;for(const j of S.jobs.filter(j=>j.done<j.mwh).sort((a,b)=>a.deadline-b.deadline)){const take=Math.min(e,j.mwh-j.done,j.max*DT);j.done+=take;e-=take;j.state=take>0?'running':(j.done>=j.mwh-1e-6?'done':'waiting');if(j.done>=j.mwh-1e-6)j.state='done'}
+  for(const j of S.jobs){if(j.done<j.mwh-1e-6&&hour>=j.deadline&&j.state!=='late'){j.state='late';addAlert('warn','مهمة تجاوزت موعدها',`${j.name} لم تكتمل قبل ${String(j.deadline).padStart(2,'0')}:00.`)}}
+  Object.assign(S,{});S.solar[i]=sol;S.crit[i]=crit;S.flex[i]=flex;S.dis[i]=dis;S.ch[i]=ch;S.grid[i]=grid;S.waste[i]=waste;S.soc[i]=S.socNow/BCAP;
+  if(mode!==S.lastMode){S.lastMode=mode;decide(i,mode,detail,tag)}
+  // alerts
+  if(waste>.5&&cfg.ofoq&&S.waste[i-1]<=.5)addAlert('warn','فائض شمسي يُهدر','البطارية ممتلئة والمهام المرنة عند السقف. ارفع "أقصى حِمل مرن" من التحكم الذكي.');
+  if(!cfg.ofoq&&waste>1&&(i%16===0))addAlert('crit','أُفق متوقف','يُهدر '+fmt(waste)+' MW من الطاقة الشمسية الآن.');
+  if(cfg.weather==='dust'&&i===40)addAlert('warn','انخفاض الإشعاع بسبب الغبار','الإنتاج أقل من المتوقع النظري. جدولة المهام تعتمد على البطارية والشبكة.');
+  if(ambient(i)>44&&i%12===0)addAlert('warn','حرارة مرتفعة','الحرارة الخارجية '+Math.round(ambient(i))+'°C، حمل التبريد مرتفع.');
+  S.pending=S.pending.filter(p=>{if(i-p.at>8){S.decisions.unshift({t:hhmm(i),title:'انتهت صلاحية طلب: '+p.title,detail:'تغيّرت الظروف قبل المراجعة، فلم يُنفَّذ شيء.',tag:'info'});return false}return true});
+  S.i++;S.cycle++;
+  if(S.i>=N){addAlert('ok','اكتمل اليوم',summaryLine());S.i=0;const keep={...cfg};reset();Object.assign(cfg,keep)}
+}
+function decide(i,title,detail,tag){S.decN++;S.decisions.unshift({t:hhmm(i),title,detail,tag});S.decisions=S.decisions.slice(0,30)}
+function queue(p){p.id='R-'+(100+S.pending.length+S.decN);S.pending.push(p);addAlert('review','قرار بانتظار موافقتك',p.title);toast('قرار حساس بانتظار موافقتك')}
+function resolve(id,ok){const p=S.pending.find(x=>x.id===id);if(!p)return;S.pending=S.pending.filter(x=>x.id!==id);
+  if(ok&&p.kind==='reserve'){const was=cfg.reserve;cfg.reserve=.1;$('rReserve').value=10;$('vReserve').textContent='10%';setTimeout(()=>{cfg.reserve=was;$('rReserve').value=Math.round(was*100);$('vReserve').textContent=Math.round(was*100)+'%'},4000)}
+  S.decisions.unshift({t:hhmm(Math.max(0,S.i-1)),title:(ok?'وافق المشغّل: ':'رفض المشغّل: ')+p.title,detail:p.why,tag:ok?'auto':'rej'});toast(ok?'تم التنفيذ بعد موافقتك':'تم رفض القرار وتسجيله');render()}
+function addAlert(sev,title,body){S.alerts.unshift({sev,title,body,t:hhmm(Math.max(0,(S?S.i:0)-0)),read:false});S.alerts=S.alerts.slice(0,40);S.unread++}
+function summaryLine(){const t=totals();return `استغلال شمسي ${Math.round(t.use*100)}% · شبكة ${fmt(t.grid)} MWh · مهدر ${fmt(t.waste)} MWh`}
+function totals(){const sum=a=>a.reduce((x,y)=>x+(y||0),0)*DT,st=sum(S.solar);return{use:st?(st-sum(S.waste))/st:0,grid:sum(S.grid),waste:sum(S.waste),ch:sum(S.ch),dis:sum(S.dis)}}
+
+/* ───────── charts (canvas) ───────── */
+function setup(c){const dpr=Math.min(devicePixelRatio||1,2),w=c.clientWidth,h=c.clientHeight;if(c.width!==w*dpr||c.height!==h*dpr){c.width=w*dpr;c.height=h*dpr}const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);x.direction='ltr';return{x,w,h}}
+function axes(x,w,h,max,unit,P){x.font='11px "JetBrains Mono", monospace';x.fillStyle='#6f7e90';x.strokeStyle='rgba(255,255,255,.06)';x.lineWidth=1;
+  const steps=4;for(let k=0;k<=steps;k++){const v=max*k/steps,y=P.t+(h-P.t-P.b)*(1-k/steps);x.beginPath();x.moveTo(P.l,y);x.lineTo(w-P.r,y);x.stroke();x.fillText(fmt(v,v<10&&max<=1.2?1:0)+unit,2,y+4)}
+  for(let t=0;t<=24;t+=6){const X=P.l+(w-P.l-P.r)*(t/24);x.fillText(String(t).padStart(2,'0')+':00',Math.min(X-16,w-44),h-6)}}
+function area(x,X,Y,lo,hi,col,upto){x.beginPath();let started=false;for(let k=0;k<upto;k++){if(hi[k]==null)continue;started?x.lineTo(X(k),Y(hi[k])):(x.moveTo(X(k),Y(hi[k])),started=true)}for(let k=upto-1;k>=0;k--){if(hi[k]==null)continue;x.lineTo(X(k),Y(lo[k]))}x.closePath();x.fillStyle=col;x.fill()}
+function line(x,X,Y,arr,col,from,to,dash,w=2){x.beginPath();let s=false;for(let k=from;k<to;k++){const v=arr(k);if(v==null)continue;s?x.lineTo(X(k),Y(v)):(x.moveTo(X(k),Y(v)),s=true)}x.strokeStyle=col;x.lineWidth=w;x.setLineDash(dash||[]);x.stroke();x.setLineDash([])}
+function now(x,X,h,P){const xx=X(Math.max(0,S.i-1));x.strokeStyle='rgba(255,178,56,.7)';x.setLineDash([3,4]);x.beginPath();x.moveTo(xx,P.t);x.lineTo(xx,h-P.b);x.stroke();x.setLineDash([])}
+function drawBalance(){const c=$('cBalance');if(!c.offsetParent)return;const{x,w,h}=setup(c),P={l:44,r:8,t:8,b:22},MAX=12,X=k=>P.l+(w-P.l-P.r)*k/(N-1),Y=v=>P.t+(h-P.t-P.b)*(1-v/MAX),n=S.i;
+  axes(x,w,h,MAX,'',P);const z=Array(N).fill(0),bf=S.crit.map((v,k)=>v==null?null:v+S.flex[k]),gd=S.grid.map((v,k)=>v==null?null:v+S.dis[k]);
+  area(x,X,Y,z,S.grid,'rgba(255,90,95,.3)',n);area(x,X,Y,S.grid,gd,'rgba(176,140,255,.55)',n);area(x,X,Y,S.crit,bf,'rgba(63,224,240,.45)',n);
+  line(x,X,Y,k=>S.crit[k],'rgba(232,236,241,.6)',0,n,[5,4],1.5);line(x,X,Y,k=>S.solar[k],css('--sun'),0,n,null,2.5);
+  line(x,X,Y,k=>k>=n-1?forecast(k):null,'rgba(255,178,56,.75)',Math.max(0,n-1),N,[4,4],1.8);now(x,X,h,P);
+  $('balanceNow').textContent=hhmm(Math.max(0,n-1))}
+function drawSources(){const c=$('cSources');if(!c.offsetParent)return;const{x,w,h}=setup(c),P={l:44,r:8,t:8,b:22},MAX=12,n=S.i,bw=(w-P.l-P.r)/N,Y=v=>P.t+(h-P.t-P.b)*(1-v/MAX);axes(x,w,h,MAX,'',P);
+  for(let k=0;k<n;k++){const X0=P.l+k*bw,load=S.crit[k]+S.flex[k],direct=Math.min(S.solar[k],load);let y=0;
+    const seg=(v,col)=>{if(v<=0)return;x.fillStyle=col;x.fillRect(X0+.5,Y(y+v),Math.max(1,bw-1),Y(y)-Y(y+v));y+=v};
+    seg(direct,css('--sun'));seg(S.dis[k],css('--cell'));seg(S.grid[k],css('--grid'));if(S.waste[k]>0){x.fillStyle='rgba(255,90,95,.22)';x.fillRect(X0+.5,Y(y+S.waste[k]),Math.max(1,bw-1),Y(y)-Y(y+S.waste[k]))}}}
+function drawSoc(){const c=$('cSoc');if(!c.offsetParent)return;const{x,w,h}=setup(c),P={l:44,r:8,t:8,b:22},X=k=>P.l+(w-P.l-P.r)*k/(N-1),Y=v=>P.t+(h-P.t-P.b)*(1-v),n=S.i;
+  x.font='11px "JetBrains Mono", monospace';x.fillStyle='#6f7e90';x.strokeStyle='rgba(255,255,255,.06)';for(let k=0;k<=4;k++){const y=Y(k/4);x.beginPath();x.moveTo(P.l,y);x.lineTo(w-P.r,y);x.stroke();x.fillText(k*25+'%',4,y+4)}
+  for(let t=0;t<=24;t+=6)x.fillText(String(t).padStart(2,'0')+':00',Math.min(P.l+(w-P.l-P.r)*t/24-16,w-44),h-6);
+  const z=Array(N).fill(0);area(x,X,Y,z,S.soc,'rgba(176,140,255,.18)',n);line(x,X,Y,k=>S.soc[k],css('--cell'),0,n,null,2.5);
+  x.strokeStyle=css('--warn');x.setLineDash([5,5]);x.beginPath();x.moveTo(P.l,Y(cfg.reserve));x.lineTo(w-P.r,Y(cfg.reserve));x.stroke();x.setLineDash([]);now(x,X,h,P)}
+function drawForecast(){const c=$('cForecast');if(!c.offsetParent)return;const{x,w,h}=setup(c),P={l:44,r:8,t:8,b:22},MAX=12,X=k=>P.l+(w-P.l-P.r)*k/(N-1),Y=v=>P.t+(h-P.t-P.b)*(1-v/MAX),n=S.i;axes(x,w,h,MAX,'',P);
+  const lo=[...Array(N)].map((_,k)=>k>=n-1?forecast(k)*.88:null),hi=[...Array(N)].map((_,k)=>k>=n-1?forecast(k)*1.12:null);
+  x.beginPath();let s=false;for(let k=n-1;k<N;k++){if(k<0)continue;s?x.lineTo(X(k),Y(hi[k])):(x.moveTo(X(k),Y(hi[k])),s=true)}for(let k=N-1;k>=Math.max(0,n-1);k--)x.lineTo(X(k),Y(lo[k]));x.closePath();x.fillStyle='rgba(255,178,56,.14)';x.fill();
+  line(x,X,Y,k=>S.solar[k],css('--sun'),0,n,null,2.5);line(x,X,Y,k=>k<n?S.fc[k]:null,'rgba(255,178,56,.45)',0,n,[3,4],1.2);line(x,X,Y,k=>k>=n-1?forecast(k):null,css('--sun'),Math.max(0,n-1),N,[5,4],2);now(x,X,h,P)}
+function spark(id,arr,col,max){const c=$(id);if(!c.offsetParent)return;const{x,w,h}=setup(c),n=S.i,from=Math.max(0,n-24);x.beginPath();let s=false;
+  for(let k=from;k<n;k++){const v=arr(k);const X=(k-from)/23*w,Y=h-2-(v/max)*(h-4);s?x.lineTo(X,Y):(x.moveTo(X,Y),s=true)}x.strokeStyle=col;x.lineWidth=1.6;x.stroke()}
+
+/* ───────── render ───────── */
+const tagChip={auto:'<span class="chip auto">تلقائي</span>',review:'<span class="chip review">مراجعة</span>',rej:'<span class="chip rej">مرفوض</span>',info:'<span class="chip info">معلومة</span>'};
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function render(){
+  const k=Math.max(0,S.i-1),sol=S.solar[k]||0,crit=S.crit[k]||0,flex=S.flex[k]||0,soc=S.soc[k]??S.socNow/BCAP,t=totals();
+  $('plant').textContent=hhmm(S.i);$('cycle').textContent=S.cycle;
+  $('kSolar').textContent=fmt(sol);$('kSolarF').textContent=fmt(forecast(Math.min(N-1,S.i+12)))+' MW';
+  $('kDemand').textContent=fmt(crit+flex);$('kCrit').textContent=fmt(crit);$('kFlex').textContent=fmt(flex);
+  $('kSoc').textContent=Math.round(soc*100);$('kBatMode').textContent=(S.ch[k]>.05?'يشحن · ':S.dis[k]>.05?'يفرّغ · ':'ثابت · ')+fmt(Math.max(S.ch[k]||0,S.dis[k]||0))+' MW';
+  const load=Math.round((crit+flex)/(CRIT+2.2+cfg.flexMax)*100);$('kLoad').textContent=Math.min(100,load);$('kHead').textContent=Math.round((1-flex/cfg.flexMax)*100)+'%';
+  spark('sp0',i=>S.solar[i],css('--sun'),12);spark('sp1',i=>S.crit[i]+S.flex[i],'#E8ECF1',12);spark('sp2',i=>S.soc[i],css('--cell'),1);spark('sp3',i=>S.flex[i],css('--compute'),cfg.flexMax);
+  $('tUse').textContent=Math.round(t.use*100)+'%';$('tGrid').textContent=fmt(t.grid)+' MWh';$('tWaste').textContent=fmt(t.waste)+' MWh';
+  $('tJobs').textContent=S.jobs.filter(j=>j.state==='done').length+' / '+S.jobs.length;
+  $('cool').textContent=fmt(coolLoad(k))+' MW';$('ambient').textContent=Math.round(ambient(k))+'°C';$('coolMode').textContent=ambient(k)>42?'تبريد مكثّف':ambient(k)>36?'عادي':'اقتصادي';
+  // decisions
+  const feed=S.decisions.slice(0,12).map(d=>`<li><span class="t num">${d.t}</span><div><b>${esc(d.title)}</b> ${tagChip[d.tag]||''}<p>${esc(d.detail)}</p></div></li>`).join('');
+  $('feedDash').innerHTML=feed||'<li><span></span><div><p>ستظهر قرارات أُفق هنا مع كل تغيير في وضع التشغيل.</p></div></li>';$('decCount').textContent=S.decN;
+  const pend=S.pending.map(p=>`<div style="display:block"><b>${esc(p.title)}</b><p class="note" style="margin:4px 0 8px">${esc(p.why)}</p><span class="acts" style="display:flex;gap:6px"><button class="btn primary" data-ok="${p.id}">موافقة</button><button class="btn danger" data-no="${p.id}">رفض</button></span></div>`).join('');
+  const empty='<div style="display:block"><span>لا توجد قرارات حساسة الآن. أي تفريغ تحت الاحتياطي أو سحب كبير من الشبكة سيظهر هنا قبل تنفيذه.</span></div>';
+  $('pendingDash').innerHTML=pend||empty;$('pendingFull').innerHTML=pend||empty;
+  // status
+  const st=$('sysStatus');if(!cfg.ofoq){st.textContent='أُفق متوقف';st.classList.add('warn')}else if(S.pending.length){st.textContent='بانتظار مراجعة';st.classList.add('warn')}else{st.textContent='النظام يعمل';st.classList.remove('warn')}
+  const nb=$('navBadge');nb.hidden=!S.unread;nb.textContent=S.unread;
+  // energy
+  $('eIrr').textContent=Math.round(sol/PEAK*1000/.95);$('eWeather').textContent=WX[cfg.weather].name+' · '+Math.round(ambient(k))+'°C';
+  $('eEff').textContent=sol>0?Math.round((cfg.weather==='heat'?18.2:cfg.weather==='dust'?14.1:20.4)):0;
+  $('eGrid').textContent=fmt(S.grid[k]||0);$('eGridNote').textContent=(S.grid[k]||0)>.05?'للأحمال الحرجة فقط':'لا سحب الآن';
+  // storage
+  const gs=$('socArc');gs.setAttribute('stroke-dashoffset',(465*(1-soc)).toFixed(1));$('gSoc').textContent=Math.round(soc*100)+'%';$('gMode').textContent=S.ch[k]>.05?'يشحن':S.dis[k]>.05?'يفرّغ':'ثابت';
+  $('sNow').textContent=fmt(soc*BCAP)+' MWh';$('sRes').textContent=fmt(cfg.reserve*BCAP)+' MWh';$('sAvail').textContent=fmt(Math.max(0,soc-cfg.reserve)*BCAP)+' MWh';
+  $('sCh').textContent=fmt(t.ch)+' MWh';$('sDis').textContent=fmt(t.dis)+' MWh';$('sCyc').textContent=fmt(t.dis/BCAP,2);$('sTemp').textContent=Math.round(26+ambient(k)*.18+(S.ch[k]||S.dis[k]?3:0))+'°C';
+  // computing
+  const crits=[['خدمات الذكاء الاصطناعي المباشرة',0,24],['التخزين والشبكات',0,24]];
+  let g='';const pos=h=>h/24*100;
+  
+  crits.forEach(([n])=>g+=`<div class="lane"><span>${n}</span><div class="track"><div class="job crit" style="left:0;width:100%">حرج · 24/7</div></div></div>`);
+  S.jobs.forEach(j=>{const runs=[];let start=null;for(let q=0;q<S.i;q++){const active=(S.flex[q]||0)>.3&&j.state!=='waiting'||false;}
+    // derive bars from recorded flex windows proportional to this job's share
+    const bars=[];let s0=null;for(let q=0;q<S.i;q++){const on=(j._hist||[])[q];if(on&&s0==null)s0=q;if((!on||q===S.i-1)&&s0!=null){bars.push([s0,on?q+1:q]);s0=null}}
+    g+=`<div class="lane"><span title="${esc(j.name)}">${esc(j.name)}</span><div class="track">${bars.map(([a,b])=>`<div class="job" style="left:${pos(a*DT)}%;width:${Math.max(.8,pos((b-a)*DT))}%">${j.id}</div>`).join('')}</div></div>`});
+  g+=`<div class="over"><div class="solarband" style="left:25%;width:50%"></div><div class="nowline" style="left:${S.i/N*100}%"></div></div>`;$('gantt').innerHTML=g;
+  const stName={waiting:'بانتظار نافذة',running:'قيد التشغيل',done:'مكتملة',late:'متأخرة'},stChip={waiting:'info',running:'auto',done:'auto',late:'rej'};
+  $('jobsBody').innerHTML=S.jobs.map(j=>`<tr><td><b>${esc(j.name)}</b><div class="note num">${j.id}</div></td><td>${j.kind}</td><td class="num">${fmt(j.mwh)} MWh</td><td class="num">${String(j.deadline).padStart(2,'0')}:00</td><td><div class="bar"><i style="width:${Math.min(100,j.done/j.mwh*100)}%"></i></div></td><td><span class="chip ${stChip[j.state]}">${stName[j.state]}</span></td></tr>`).join('');
+  // predictions
+  let pk=0,pkAt=0;for(let q=0;q<N;q++){const f=forecast(q);if(f>pk){pk=f;pkAt=q}}$('pPeak').textContent=fmt(pk);$('pPeakAt').textContent=hhmm(pkAt);
+  let err=0,cnt=0;for(let q=Math.max(0,S.i-12);q<S.i;q++){if(S.fc[q]>.5){err+=Math.abs(S.solar[q]-S.fc[q])/S.fc[q];cnt++}}$('pAcc').textContent=cnt?Math.round((1-err/cnt)*100):'—';
+  let fs=0;for(let q=S.i;q<Math.min(N,S.i+12);q++)fs+=Math.max(0,forecast(q)-(CRIT+coolLoad(q)))*DT;$('pSurplus').textContent=fmt(fs);
+  // alerts
+  const sevCol={info:'var(--dim)',ok:'var(--ok)',warn:'var(--warn)',review:'var(--warn)',crit:'var(--grid)'};
+  $('alertList').innerHTML=S.alerts.length?S.alerts.map(a=>`<li><span class="sev" style="background:${sevCol[a.sev]}"></span><div><b>${esc(a.title)}</b><p>${esc(a.body)}</p></div><span class="num note">${a.t}</span></li>`).join(''):'<li class="empty" style="display:block">لا تنبيهات.</li>';
+  drawBalance();drawSources();drawSoc();drawForecast();
+}
+
+/* track per-job activity for the gantt */
+const _tick=tick;tick=function(){const before=S.jobs.map(j=>j.done);const i=S.i;_tick();S.jobs.forEach((j,q)=>{j._hist=j._hist||[];j._hist[i]=j.done>before[q]+1e-6})};
+
+/* ───────── routing ───────── */
+const views=['dashboard','energy','storage','computing','predictions','control','alerts','settings'];
+function route(){const v=(location.hash||'#dashboard').slice(1);const cur=views.includes(v)?v:'dashboard';
+  views.forEach(n=>$('v-'+n).hidden=n!==cur);document.querySelectorAll('.nav a').forEach(a=>a.setAttribute('aria-current',a.dataset.v===cur?'page':'false'));
+  if(cur==='alerts'){S.unread=0}$('side').classList.remove('open');$('menuBtn').setAttribute('aria-expanded','false');render()}
+addEventListener('hashchange',route);
+
+/* ───────── controls ───────── */
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast._t);toast._t=setTimeout(()=>t.classList.remove('on'),2200)}
+$('pauseBtn').addEventListener('click',()=>{S.paused=!S.paused;const b=$('pauseBtn');b.setAttribute('aria-pressed',S.paused);b.querySelector('use').setAttribute('href',S.paused?'#i-play':'#i-pause');b.querySelector('span').textContent=S.paused?'استئناف':'إيقاف مؤقت'});
+$('menuBtn').addEventListener('click',()=>{const o=$('side').classList.toggle('open');$('menuBtn').setAttribute('aria-expanded',o)});
+document.addEventListener('click',e=>{const ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]');if(ok)resolve(ok.dataset.ok,true);if(no)resolve(no.dataset.no,false)});
+const bind=(id,out,fn)=>$(id).addEventListener('input',e=>{const v=+e.target.value;$(out).textContent=fn(v);render()});
+bind('rReserve','vReserve',v=>{cfg.reserve=v/100;return v+'%'});bind('rFlex','vFlex',v=>{cfg.flexMax=v;return fmt(v)+' MW'});bind('rCool','vCool',v=>{cfg.coolMargin=v/100;return v+'%'});
+[['swAutoFlex','autoFlex'],['swAutoCharge','autoCharge'],['swReview','review'],['swOfoq','ofoq']].forEach(([id,key])=>$(id).addEventListener('change',e=>{cfg[key]=e.target.checked;S.lastMode='';toast((e.target.checked?'تم التفعيل: ':'تم الإيقاف: ')+e.target.closest('label').querySelector('span').firstChild.textContent.trim());render()}));
+const seg=(id,attr,fn)=>$(id).querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{$(id).querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));fn(b.dataset[attr])}));
+seg('segWeather','w',w=>{cfg.weather=w;addAlert('info','تغيّرت ظروف الطقس',WX[w].name);toast('الطقس: '+WX[w].name);render()});
+seg('segSpeed','s',s=>{cfg.speed=+s});
+$('resetBtn').addEventListener('click',()=>{reset();toast('بدأ يوم جديد');render()});
+$('clearAlerts').addEventListener('click',()=>{S.unread=0;S.alerts.forEach(a=>a.read=true);render()});
+addEventListener('resize',()=>render());
+
+/* ───────── loop ───────── */
+reset();
+// warm start: run the night so the dashboard opens mid-morning with history
+for(let q=0;q<38;q++)tick();
+route();
+let acc=0,last=performance.now();
+function loop(t){const dt=t-last;last=t;$('wall').textContent=new Date().toLocaleTimeString('en-GB');
+  if(!S.paused&&!document.hidden){acc+=dt*cfg.speed/3;if(acc>(RM?1600:800)){acc=0;tick();render()}}requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

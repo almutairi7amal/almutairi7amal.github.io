@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>بُرهان · غرفة القرار</title>
+<meta name="description" content="النموذج الأولي لبُرهان: قرارات أنظمة الطاقة الذكية تمر عبر بوابة تحقق قبل التنفيذ، مع مراجعة بشرية وسجل أدلة مسلسل بالبصمات.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: an operator's desk. Incoming decisions drop in at the top, the gate examines them in the open, and every verdict lands in a ledger on the side. */
+:root{
+  --paper:#EEE9DF;--sheet:#F9F7F2;--ink:#141414;--pencil:#5B574F;--rule:#D3CBBD;
+  --block:#C42D1C;--hold:#9E6A14;--pass:#1F6B45;--proof:#2440B8;
+  --font:"IBM Plex Sans Arabic",system-ui,"Segoe UI",Tahoma,sans-serif;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;--naskh:"Noto Naskh Arabic",serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--paper)}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--proof);outline-offset:2px}
+.mono{font-family:var(--mono);direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;line-height:1.35}
+p{margin:0}
+
+.app{display:grid;grid-template-rows:auto auto 1fr;min-height:100vh}
+.top{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:10px 20px;background:var(--ink);color:var(--paper)}
+.top .brand{font-family:var(--naskh);font-size:22px}
+.top .sub{font-size:12px;color:#bdb6a8}
+.spacer{flex:1}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(238,233,223,.35);padding:4px 12px;font-size:12px;font-family:var(--mono)}
+.pill i{width:7px;height:7px;border-radius:50%;background:#7fdca7}
+.pill.alarm i{background:#ff7a6a;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.2}}
+.tbtn{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 14px;border:1px solid rgba(238,233,223,.45);background:transparent;cursor:pointer}
+.tbtn:hover{background:rgba(238,233,223,.08)}
+.tbtn.red{background:var(--block);border-color:var(--block);color:#fff;font-weight:600}
+.tabs{display:flex;gap:0;border-bottom:1.5px solid var(--ink);background:var(--sheet);overflow-x:auto}
+.tabs a{display:flex;align-items:center;gap:8px;padding:12px 18px;text-decoration:none;color:var(--pencil);border-inline-end:1px solid var(--rule);min-height:46px;white-space:nowrap}
+.tabs a[aria-current="page"]{background:var(--paper);color:var(--ink);font-weight:600;box-shadow:inset 0 -3px 0 var(--ink)}
+.tabs .n{font-family:var(--mono);font-size:11px;background:var(--hold);color:#fff;padding:0 7px;border-radius:999px}
+.view{padding:20px;display:grid;gap:16px;align-content:start}
+.view[hidden]{display:none}
+.panel{background:var(--sheet);border:1.5px solid var(--ink)}
+.ph{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1.5px solid var(--ink)}
+.ph h2{font-size:15px}
+.ph .mono{margin-inline-start:auto;font-size:12px;color:var(--pencil)}
+.pb{padding:14px}
+.note{color:var(--pencil);font-size:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:6px 14px;border:1.5px solid var(--ink);background:var(--sheet);cursor:pointer;font-weight:600}
+.btn:hover{background:var(--paper)}
+.btn.ink{background:var(--ink);color:var(--paper)}
+.btn.pass{background:var(--pass);border-color:var(--pass);color:#fff}
+.btn.block{color:var(--block);border-color:var(--block)}
+.v{font-family:var(--mono);font-size:11px;font-weight:600;padding:1px 8px;border:1.5px solid currentColor;white-space:nowrap}
+.v.pass{color:var(--pass)}.v.hold{color:var(--hold)}.v.block{color:var(--block)}.v.wait{color:var(--pencil);border-style:dashed}
+
+/* GATE view */
+.gate-grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);border:1.5px solid var(--ink);background:var(--sheet)}
+.kpis div{padding:14px;border-inline-start:1.5px solid var(--ink)}
+.kpis div:first-child{border-inline-start:0}
+.kpis b{display:block;font-family:var(--mono);font-size:28px;font-weight:500;direction:ltr;text-align:right;line-height:1.2}
+.kpis span{color:var(--pencil);font-size:12px}
+.pipe{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:14px;border-bottom:1.5px solid var(--ink)}
+.stage{border:1.5px solid var(--rule);padding:8px 6px;text-align:center;font-size:11px;min-height:58px;display:grid;align-content:center;gap:2px;background:var(--paper);transition:background .2s,border-color .2s}
+.stage b{font-family:var(--mono);font-size:10px;color:var(--pencil)}
+.stage.on{border-color:var(--proof);background:rgba(36,64,184,.08)}
+.stage.ok{border-color:var(--pass);background:rgba(31,107,69,.08)}
+.stage.warn{border-color:var(--hold);background:rgba(158,106,20,.1)}
+.stage.bad{border-color:var(--block);background:rgba(196,45,28,.1)}
+.current{padding:14px;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+.current h3{font-family:var(--naskh);font-size:22px}
+.current dl{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;margin:8px 0 0;font-size:13px}
+.current dt{color:var(--pencil)}.current dd{margin:0}
+.stampbig{font-family:var(--naskh);font-size:44px;line-height:1;padding:4px 14px 8px;border:4px solid currentColor;border-radius:6px;transform:rotate(-12deg);opacity:0;mix-blend-mode:multiply}
+.stampbig.show{opacity:.9;animation:slam .28s cubic-bezier(.3,1.6,.5,1)}
+@keyframes slam{from{transform:rotate(-20deg) scale(2.2);opacity:0}}
+.stampbig.pass{color:var(--pass)}.stampbig.hold{color:var(--hold)}.stampbig.block{color:var(--block)}
+.stream{list-style:none;margin:0;padding:0;max-height:420px;overflow:auto}
+.stream li{display:grid;grid-template-columns:92px 1fr auto;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--rule);cursor:pointer}
+.stream li:hover{background:var(--paper)}
+.stream li .t{font-size:12px;color:var(--pencil)}
+.stream li b{font-weight:500;display:block}
+.stream li small{color:var(--pencil);font-size:12px}
+.stream li.new{animation:drop .5s ease-out}
+@keyframes drop{from{background:rgba(36,64,184,.12);transform:translateY(-6px)}}
+
+/* detail */
+.detail{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+.checks{list-style:none;margin:0;padding:0}
+.checks li{display:grid;grid-template-columns:30px 1fr auto;gap:10px;padding:10px 14px;border-bottom:1px solid var(--rule);align-items:center}
+.checks li .k{font-family:var(--mono);font-size:11px;color:var(--pencil)}
+.checks li p{color:var(--pencil);font-size:12px}
+.checks li.bad{background:rgba(196,45,28,.06)}
+.sim{display:block;width:100%;height:200px}
+.reason{padding:14px;border-top:1.5px solid var(--ink);display:grid;gap:8px}
+.reason .alt{background:var(--paper);border:1px dashed var(--ink);padding:10px}
+
+/* review */
+.queue{display:grid;gap:12px}
+.qitem{background:var(--sheet);border:1.5px solid var(--ink);display:grid;grid-template-columns:1fr auto;gap:12px;padding:14px}
+.qitem h3{font-family:var(--naskh);font-size:20px}
+.qitem p{color:var(--pencil);font-size:13px;margin-top:4px}
+.qitem .acts{display:flex;gap:8px;align-items:end;flex-wrap:wrap}
+.qitem textarea{grid-column:1/-1;border:1.5px solid var(--ink);background:var(--paper);min-height:44px;padding:8px;font:inherit;resize:vertical}
+.empty{padding:40px;text-align:center;color:var(--pencil);border:1.5px dashed var(--ink);background:var(--sheet)}
+
+/* ledger */
+.ltable{width:100%;border-collapse:collapse;font-size:13px}
+.ltable th,.ltable td{text-align:right;padding:9px 12px;border-bottom:1px solid var(--rule);vertical-align:top}
+.ltable th{font-size:12px;color:var(--pencil);font-weight:500;background:var(--paper)}
+.ltable td.h{font-family:var(--mono);font-size:11px;direction:ltr;text-align:right;color:var(--proof)}
+.ltable tr.broken td{background:rgba(196,45,28,.07)}
+.ltable tr.broken td.h{color:var(--block)}
+.lctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;border-bottom:1.5px solid var(--ink)}
+.msg{font-family:var(--mono);font-size:12px;padding:4px 10px;border:1.5px solid currentColor}
+.msg.ok{color:var(--pass)}.msg.bad{color:var(--block)}
+.tbl{overflow-x:auto}
+
+/* policies */
+.pol{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.field{display:grid;gap:4px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.field:last-child{border:0}
+.field label{display:flex;justify-content:space-between;font-weight:600}
+.field label .mono{color:var(--proof)}
+.field small{color:var(--pencil)}
+input[type=range]{width:100%;accent-color:var(--ink);height:28px}
+.sw{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rule)}
+.sw:last-child{border:0}
+.sw small{display:block;color:var(--pencil);font-weight:400}
+.sw input{appearance:none;width:42px;height:24px;border:1.5px solid var(--ink);background:var(--paper);position:relative;cursor:pointer;flex:none}
+.sw input::after{content:"";position:absolute;top:2px;inset-inline-start:2px;width:17px;height:17px;background:var(--ink);transition:inset-inline-start .15s}
+.sw input:checked{background:var(--pass)}
+.sw input:checked::after{inset-inline-start:19px;background:#fff}
+
+/* assets */
+.assets{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.asset{background:var(--sheet);border:1.5px solid var(--ink);padding:14px;display:grid;gap:6px}
+.asset b{font-size:15px}
+.asset .row{display:flex;justify-content:space-between;font-size:13px;color:var(--pencil)}
+.asset .row span:last-child{color:var(--ink);font-family:var(--mono);direction:ltr}
+.asset.alarm{border-color:var(--block);background:rgba(196,45,28,.05)}
+
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 18px;font-weight:500;opacity:0;pointer-events:none;transition:opacity .2s;z-index:40}
+.toast.on{opacity:1}
+
+@media (max-width:1100px){.gate-grid,.detail,.pol{grid-template-columns:1fr}.assets{grid-template-columns:1fr 1fr}.pipe{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:620px){.kpis{grid-template-columns:1fr 1fr}.kpis div:nth-child(3){border-inline-start:0}.kpis div:nth-child(n+3){border-top:1.5px solid var(--ink)}.assets{grid-template-columns:1fr}.view{padding:12px}.top .sub{display:none}.stream li{grid-template-columns:70px 1fr auto}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <span class="brand">بُرهان</span><span class="sub">غرفة القرار · طبقة أمان القرارات قبل التنفيذ</span>
+    <span class="spacer"></span>
+    <span class="pill" id="sys"><i></i><span>LIVE · SIMULATION</span></span>
+    <span class="mono" id="clock" style="font-size:12px;color:#bdb6a8">--:--:--</span>
+    <button class="tbtn" id="pause" aria-pressed="false">إيقاف مؤقت</button>
+    <button class="tbtn red" id="attack">حاكِ هجوم تزوير قراءة</button>
+  </header>
+  <nav class="tabs" aria-label="أقسام غرفة القرار">
+    <a href="#gate" data-v="gate">البوابة الحية</a>
+    <a href="#detail" data-v="detail">تحليل القرار</a>
+    <a href="#review" data-v="review">المراجعة البشرية <span class="n" id="qN" hidden>0</span></a>
+    <a href="#ledger" data-v="ledger">سجل الأدلة</a>
+    <a href="#assets" data-v="assets">الأصول</a>
+    <a href="#policy" data-v="policy">السياسات</a>
+  </nav>
+
+  <!-- GATE -->
+  <section class="view" id="v-gate" aria-label="البوابة الحية">
+    <div class="kpis">
+      <div><b id="kAll">0</b><span>قرار فُحص اليوم</span></div>
+      <div><b id="kPass" style="color:var(--pass)">0</b><span>سُمح</span></div>
+      <div><b id="kHold" style="color:var(--hold)">0</b><span>عُلّق لمراجعة بشرية</span></div>
+      <div><b id="kBlock" style="color:var(--block)">0</b><span>مُنع قبل التنفيذ</span></div>
+    </div>
+    <div class="gate-grid">
+      <div class="panel">
+        <div class="ph"><h2>القرار تحت الفحص الآن</h2><span class="mono" id="curId">—</span></div>
+        <div class="pipe" id="pipe"></div>
+        <div class="current">
+          <div><h3 id="curTitle">بانتظار أول قرار…</h3><dl id="curDl"></dl></div>
+          <div class="stampbig" id="curStamp"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph"><h2>آخر القرارات</h2><span class="mono">اضغط أي قرار لتحليله</span></div>
+        <ul class="stream" id="stream" aria-live="polite"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- DETAIL -->
+  <section class="view" id="v-detail" aria-label="تحليل القرار" hidden>
+    <div class="detail">
+      <div class="panel"><div class="ph"><h2 id="dTitle">—</h2><span class="mono" id="dId"></span></div>
+        <ol class="checks" id="dChecks"></ol>
+        <div class="reason"><b>سبب الحكم</b><p id="dWhy"></p><div class="alt"><b>البديل المقترح للمشغّل: </b><span id="dAlt"></span></div></div></div>
+      <div class="panel"><div class="ph"><h2>محاكاة الأثر على الأصل</h2><span class="mono" id="dAsset"></span></div>
+        <div class="pb"><canvas class="sim" id="dSim" role="img" aria-label="محاكاة أثر القرار على متغير الأصل الحرج مقارنة بالحد الآمن"></canvas>
+        <p class="note" id="dSimNote"></p></div>
+        <div class="reason"><b>البيانات المستخدمة</b><div class="tbl"><table class="ltable"><tbody id="dData"></tbody></table></div></div></div>
+    </div>
+  </section>
+
+  <!-- REVIEW -->
+  <section class="view" id="v-review" aria-label="المراجعة البشرية" hidden>
+    <p class="note">القرارات المعلّقة لا تُنفّذ حتى يحكم فيها شخص مخوّل. حكمك وسببه يُختمان في سجل الأدلة.</p>
+    <div class="queue" id="queue"></div>
+  </section>
+
+  <!-- LEDGER -->
+  <section class="view" id="v-ledger" aria-label="سجل الأدلة" hidden>
+    <div class="panel">
+      <div class="lctl"><button class="btn ink" id="verify">تحقق من السلسلة</button><button class="btn" id="tamper">عدّل سجلًا قديمًا</button><span class="msg ok" id="lMsg">لم يُتحقق بعد</span><span class="spacer"></span><span class="note">كل سجل يحمل بصمة SHA-256 للسجل الذي قبله.</span></div>
+      <div class="tbl"><table class="ltable"><thead><tr><th>#</th><th>الوقت</th><th>القرار</th><th>الحكم</th><th>بواسطة</th><th>البصمة</th></tr></thead><tbody id="lBody"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ASSETS -->
+  <section class="view" id="v-assets" aria-label="الأصول" hidden>
+    <div class="assets" id="assetGrid"></div>
+    <p class="note">قراءات محاكاة. يستخدم بُرهان مصدرين مستقلين لكل قراءة حرجة، ويعتبر الاختلاف بينهما مؤشر تلاعب أو عطل.</p>
+  </section>
+
+  <!-- POLICY -->
+  <section class="view" id="v-policy" aria-label="السياسات" hidden>
+    <div class="pol">
+      <div class="panel"><div class="ph"><h2>الحدود الفيزيائية</h2></div><div class="pb">
+        <div class="field"><label for="pTemp">أقصى حرارة للتفريغ <span class="mono" id="vTemp">45 °C</span></label><input type="range" id="pTemp" min="35" max="70" step="1" value="45"><small>أي تفريغ فوق هذه الحرارة يُمنع.</small></div>
+        <div class="field"><label for="pDiff">أقصى فرق مسموح بين مصدري القراءة <span class="mono" id="vDiff">5%</span></label><input type="range" id="pDiff" min="1" max="20" step="1" value="5"><small>فوقه تُعتبر البيانات متعارضة.</small></div>
+        <div class="field"><label for="pConf">أدنى ثقة لتنبؤ يُنفّذ تلقائيًا <span class="mono" id="vConf">80%</span></label><input type="range" id="pConf" min="50" max="99" step="1" value="80"><small>تحته يُعلّق القرار لمراجعة بشرية.</small></div>
+      </div></div>
+      <div class="panel"><div class="ph"><h2>الحوكمة</h2></div><div class="pb">
+        <label class="sw"><span>مراجعة بشرية لكل قرار متوسط الخطورة<small>عند الإيقاف: يُسمح بالمتوسط تلقائيًا إن اجتاز الفحوص.</small></span><input type="checkbox" id="pHuman" checked></label>
+        <label class="sw"><span>طلب مصدرين مستقلين للقراءات الحرجة<small>يكشف التزوير لو اتفقت قراءة واحدة مع القرار.</small></span><input type="checkbox" id="pTwo" checked></label>
+        <label class="sw"><span>تشغيل بُرهان<small>عند الإيقاف: كل قرار يُنفّذ مباشرة، مثل الأنظمة الحالية.</small></span><input type="checkbox" id="pOn" checked></label>
+      </div></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const RM=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const CH=['المصدر','السياق','الصلاحيات','جودة البيانات','القيود الفيزيائية','محاكاة الأثر','التصنيف','التسجيل'];
+const POL={temp:45,diff:5,conf:80,human:true,two:true,on:true};
+
+/* assets with two independent sensors each */
+const A={
+  bat:{name:'تخزين البطارية B-2',var:'الحرارة',unit:'°C',a:38,b:38.4,lim:()=>POL.temp},
+  tx:{name:'محوّل T-7',var:'الحمل',unit:'%',a:61,b:61.5,lim:()=>90},
+  pv:{name:'محطة الطاقة الشمسية S-1',var:'الإنتاج',unit:'MW',a:42,b:41.6,lim:()=>60},
+  dc:{name:'مركز البيانات D-1',var:'الحمل الحرج',unit:'MW',a:5.3,b:5.3,lim:()=>9}};
+const SRC=[['AI Energy Optimizer','bat','تفريغ البطارية',v=>`تفريغ ${v} MW`],['Grid Balancer','tx','موازنة الحمل بين المحوّلات',v=>`إعادة توزيع ${v} MW`],['Solar Forecast Engine','pv','رفع سقف التوليد',v=>`رفع ${v} MW`],['Cooling Controller','dc','خفض التبريد الاحتياطي',v=>`خفض ${v} MW`],['Demand Response Agent','dc','تأجيل أحمال مرنة',v=>`تأجيل ${v} MW`]];
+
+let S={n:2200,list:[],queue:[],ledger:[],paused:false,attack:0,cur:null,sel:null,count:{all:0,pass:0,hold:0,block:0}};
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const t=()=>new Date().toLocaleTimeString('en-GB');
+
+function drift(){for(const k in A){const x=A[k];const base={bat:[34,44],tx:[50,78],pv:[30,52],dc:[4.8,5.8]}[k];x.a=Math.max(base[0],Math.min(base[1],x.a+rnd(-1,1)*(k==='dc'?.05:1.2)));x.b=x.a*(1+rnd(-.012,.012))}
+  if(S.attack>0){A.bat.a=38;A.bat.b=63+rnd(0,6);S.attack--}}
+
+function make(forced){
+  const s=forced||SRC[Math.floor(Math.random()*SRC.length)];const asset=A[s[1]];
+  const mw=s[1]==='dc'?+rnd(.4,1.6).toFixed(1):Math.round(rnd(4,36));
+  const conf=Math.round(s[0]==='Solar Forecast Engine'?rnd(62,95):rnd(84,99));
+  const d={id:'BH-'+(++S.n),time:t(),src:s[0],key:s[1],title:s[2],act:s[3](mw),mw,conf,asset:asset.name,read:[asset.a,asset.b],unit:asset.unit,auth:Math.random()>.04};
+  return judge(d);
+}
+function judge(d){
+  const asset=A[d.key],r=[];const diff=Math.abs(d.read[0]-d.read[1])/Math.max(1e-6,Math.max(d.read[0],d.read[1]))*100;
+  const hot=d.key==='bat'&&Math.max(...d.read)>POL.temp,proj=d.key==='bat'?Math.max(...d.read)+d.mw*.25:(d.key==='tx'?asset.a+d.mw*.6:asset.a);
+  r.push(['ok','نظام معروف ومسجّل']);
+  r.push([d.key==='bat'&&Math.max(...d.read)>40?'warn':'ok',d.key==='bat'&&Math.max(...d.read)>40?'ذروة حرارة':'ظروف تشغيل طبيعية']);
+  r.push([d.auth?'ok':'bad',d.auth?'ضمن صلاحيات المصدر':'المصدر لا يملك صلاحية هذا الإجراء']);
+  r.push([POL.two&&diff>POL.diff?'bad':'ok',POL.two?`فرق المصدرين ${diff.toFixed(1)}%`:'مصدر واحد فقط (السياسة)']);
+  r.push([hot?'bad':(proj>asset.lim()?'bad':'ok'),hot?`${Math.max(...d.read).toFixed(1)}${d.unit} فوق حد ${POL.temp}${d.unit}`:(proj>asset.lim()?`الأثر المتوقع يتجاوز الحد`:'ضمن الحدود')]);
+  r.push([proj>asset.lim()*0.92?'warn':'ok',`القيمة بعد التنفيذ ≈ ${proj.toFixed(1)}${d.unit}`]);
+  const bad=r.some(x=>x[0]==='bad'),medium=d.conf<POL.conf||(d.key==='pv'&&d.mw>20);
+  let v=bad?'block':(medium&&POL.human?'hold':'pass');if(!POL.on)v='pass';
+  r.push([v==='block'?'bad':v==='hold'?'warn':'ok',{pass:'سماح',hold:'تعليق',block:'منع'}[v]]);
+  r.push(['ok','الحكم وسببه مختومان']);
+  const why=v==='block'?r.filter(x=>x[0]==='bad').map(x=>x[1]).join('، ')+'.':v==='hold'?`ثقة التنبؤ ${d.conf}% أو الأثر غير مؤكد، فيحتاج حكمًا بشريًا.`:'اجتاز كل الفحوص.';
+  const alt=v==='block'?(d.key==='bat'?'تأجيل التفريغ حتى تنخفض الحرارة، والاعتماد على الشبكة مؤقتًا.':'رفض الإجراء وإبلاغ مالك النظام المصدر.'):v==='hold'?'تنفيذ جزئي بنصف القيمة بعد موافقة المهندس.':'لا حاجة.';
+  if(!POL.on){r.forEach(x=>{x[0]='wait';x[1]='لم يُفحص'});}
+  return Object.assign(d,{checks:r,verdict:v,why:POL.on?why:'بُرهان متوقف: نُفّذ القرار بلا فحص.',alt,proj,limit:asset.lim(),diff,by:POL.on?'بُرهان':'بلا تحقق',unchecked:!POL.on});
+}
+
+/* ledger hash chain */
+async function sha(x){if(window.crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(x));return[...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('')}let h=0x811c9dc5;for(const c of x){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return(h>>>0).toString(16).padStart(8,'0').repeat(8)}
+async function seal(d,verdict,by,note){const prev=S.ledger.length?S.ledger[S.ledger.length-1].hash:'0'.repeat(64);const body=[d.id,d.time,d.title,d.act,verdict,by,note||''].join('|');const hash=await sha(prev+body);S.ledger.push({id:d.id,time:d.time,title:d.title+' · '+d.act,verdict,by,note,prev,body,hash});renderLedger()}
+
+/* the gate animation for the current decision */
+let stepTimer=null;
+function examine(d){S.cur=d;$('curId').textContent=d.id+' · '+d.time;$('curTitle').textContent=d.title+' · '+d.act;
+  $('curDl').innerHTML=`<dt>المصدر</dt><dd class="mono">${esc(d.src)}</dd><dt>الأصل</dt><dd>${esc(d.asset)}</dd><dt>القراءتان</dt><dd class="mono">${d.read.map(v=>v.toFixed(1)).join(' / ')} ${d.unit}</dd>`;
+  const st=$('curStamp');st.className='stampbig';st.textContent='';
+  let k=0;clearInterval(stepTimer);
+  const paint=()=>{$('pipe').innerHTML=CH.map((n,i)=>`<div class="stage ${i<k?(d.checks[i][0]==='wait'?'':d.checks[i][0]):(i===k?'on':'')}"><b>${String(i+1).padStart(2,'0')}</b>${n}</div>`).join('')};
+  paint();
+  const finish=()=>{clearInterval(stepTimer);k=8;paint();st.className='stampbig show '+d.verdict;st.textContent={pass:'سُمح',hold:'عُلّق',block:'مُنع'}[d.verdict];land(d)};
+  if(RM){finish();return}
+  stepTimer=setInterval(()=>{k++;paint();if(k>=8)finish()},180);
+}
+function land(d){S.list.unshift(d);S.list=S.list.slice(0,40);S.count.all++;S.count[d.verdict]++;
+  if(d.verdict==='hold'){S.queue.push(d);toast('قرار بانتظار مراجعتك: '+d.id)}else seal(d,d.verdict,d.by);
+  if(d.verdict==='block'&&d.key==='bat'&&d.diff>POL.diff)toast('كُشف تعارض في قراءات '+d.asset+' ومُنع القرار');
+  renderStream();renderKpis();renderQueue();renderAssets()}
+
+/* renders */
+const VL={pass:'ALLOW',hold:'HOLD',block:'BLOCK'};
+function renderKpis(){$('kAll').textContent=S.count.all;$('kPass').textContent=S.count.pass;$('kHold').textContent=S.count.hold;$('kBlock').textContent=S.count.block;const q=$('qN');q.hidden=!S.queue.length;q.textContent=S.queue.length}
+function renderStream(){$('stream').innerHTML=S.list.map((d,i)=>`<li data-id="${d.id}" class="${i===0?'new':''}" tabindex="0" role="button"><span class="t mono">${d.time}</span><div><b>${esc(d.title)} · ${esc(d.act)}</b><small class="mono">${d.id} · ${esc(d.src)}</small></div><span class="v ${d.verdict}">${VL[d.verdict]}</span></li>`).join('')}
+function renderQueue(){$('queue').innerHTML=S.queue.length?S.queue.map(d=>`<div class="qitem"><div><span class="mono note">${d.id} · ${d.time} · ${esc(d.src)}</span><h3>${esc(d.title)} · ${esc(d.act)}</h3><p>${esc(d.why)} البديل: ${esc(d.alt)}</p></div><div class="acts"><button class="btn pass" data-ok="${d.id}">اسمح</button><button class="btn block" data-no="${d.id}">امنع</button><button class="btn" data-see="${d.id}">حلّل</button></div><textarea aria-label="سبب الحكم (اختياري)" id="note-${d.id}" placeholder="سبب حكمك (يُختم في السجل)"></textarea></div>`).join(''):'<div class="empty">لا قرارات معلّقة. القرارات متوسطة الخطورة أو منخفضة الثقة ستظهر هنا قبل تنفيذها.</div>'}
+function renderLedger(broken=-1){$('lBody').innerHTML=S.ledger.map((r,i)=>`<tr class="${broken>-1&&i>=broken?'broken':''}"><td class="mono">${i+1}</td><td class="mono">${r.time}</td><td>${esc(r.title)}${r.note?`<div class="note">${esc(r.note)}</div>`:''}</td><td><span class="v ${r.verdict}">${VL[r.verdict]}</span></td><td>${esc(r.by)}</td><td class="h">${r.hash.slice(0,20)}…</td></tr>`).reverse().join('')}
+function renderAssets(){$('assetGrid').innerHTML=Object.values(A).map(x=>{const diff=Math.abs(x.a-x.b)/Math.max(x.a,x.b)*100,al=diff>POL.diff;return `<div class="asset ${al?'alarm':''}"><b>${x.name}</b><div class="row"><span>${x.var} · المصدر أ</span><span>${x.a.toFixed(1)} ${x.unit}</span></div><div class="row"><span>${x.var} · المصدر ب</span><span>${x.b.toFixed(1)} ${x.unit}</span></div><div class="row"><span>الحد الآمن</span><span>${x.lim()} ${x.unit}</span></div><div class="row"><span>الحالة</span><span style="font-family:var(--font);color:${al?'var(--block)':'var(--pass)'}">${al?'قراءات متعارضة':'متسقة'}</span></div></div>`}).join('')}
+function renderDetail(d){if(!d)return;S.sel=d;$('dTitle').textContent=d.title+' · '+d.act;$('dId').textContent=d.id+' · '+d.time;
+  $('dChecks').innerHTML=d.checks.map((c,i)=>`<li class="${c[0]}"><span class="k">${String(i+1).padStart(2,'0')}</span><div><b>${CH[i]}</b><p>${esc(c[1])}</p></div><span class="v ${c[0]==='ok'?'pass':c[0]==='warn'?'hold':c[0]==='bad'?'block':'wait'}">${{ok:'سليم',warn:'تنبيه',bad:'فشل',wait:'—'}[c[0]]}</span></li>`).join('');
+  $('dWhy').textContent=d.why;$('dAlt').textContent=d.alt;$('dAsset').textContent=d.asset;
+  $('dData').innerHTML=`<tr><th>المصدر أ</th><td class="mono">${d.read[0].toFixed(2)} ${d.unit}</td></tr><tr><th>المصدر ب</th><td class="mono">${d.read[1].toFixed(2)} ${d.unit}</td></tr><tr><th>الفرق</th><td class="mono">${d.diff.toFixed(1)}%</td></tr><tr><th>ثقة النموذج المصدر</th><td class="mono">${d.conf}%</td></tr>`;
+  drawSim(d)}
+function drawSim(d){const c=$('dSim');if(!c.offsetParent)return;const dpr=Math.min(devicePixelRatio||1,2),w=c.clientWidth,h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.direction='ltr';
+  const now=Math.max(...d.read),end=d.proj,lim=d.limit,max=Math.max(lim,end,now)*1.15,min=Math.min(now,end)*.7,P={l:40,r:10,t:10,b:20},Y=v=>P.t+(h-P.t-P.b)*(1-(v-min)/(max-min)),X=k=>P.l+(w-P.l-P.r)*k/30;
+  x.font='11px "IBM Plex Mono", monospace';x.fillStyle='#5B574F';x.strokeStyle='#D3CBBD';for(let k=0;k<=3;k++){const v=min+(max-min)*k/3;x.beginPath();x.moveTo(P.l,Y(v));x.lineTo(w-P.r,Y(v));x.stroke();x.fillText(v.toFixed(0),4,Y(v)+4)}
+  x.fillText('now',P.l,h-4);x.fillText('+30 min',w-60,h-4);
+  x.strokeStyle='#C42D1C';x.setLineDash([6,4]);x.beginPath();x.moveTo(P.l,Y(lim));x.lineTo(w-P.r,Y(lim));x.stroke();x.setLineDash([]);x.fillStyle='#C42D1C';x.fillText('limit '+lim,w-80,Y(lim)-4);
+  x.beginPath();for(let k=0;k<=30;k++){const v=now+(end-now)*(1-Math.exp(-k/8))/(1-Math.exp(-30/8));k?x.lineTo(X(k),Y(v)):x.moveTo(X(k),Y(v))}x.strokeStyle='#141414';x.lineWidth=2;x.stroke();
+  $('dSimNote').textContent=`لو نُفّذ القرار: ${d.asset} يصل إلى ≈ ${end.toFixed(1)} ${d.unit} خلال 30 دقيقة، والحد الآمن ${lim} ${d.unit}.`}
+
+/* routing */
+const V=['gate','detail','review','ledger','assets','policy'];
+function route(){const v=(location.hash||'#gate').slice(1),cur=V.includes(v)?v:'gate';V.forEach(n=>$('v-'+n).hidden=n!==cur);document.querySelectorAll('.tabs a').forEach(a=>a.setAttribute('aria-current',a.dataset.v===cur?'page':'false'));if(cur==='detail')renderDetail(S.sel||S.list[0]);if(cur==='assets')renderAssets()}
+addEventListener('hashchange',route);
+
+/* events */
+function toast(m){const e=$('toast');e.textContent=m;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
+document.addEventListener('click',async e=>{
+  const li=e.target.closest('.stream li');if(li){S.sel=S.list.find(d=>d.id===li.dataset.id);location.hash='detail';return}
+  const ok=e.target.closest('[data-ok]'),no=e.target.closest('[data-no]'),see=e.target.closest('[data-see]');
+  if(see){S.sel=S.queue.find(d=>d.id===see.dataset.see);location.hash='detail';return}
+  if(ok||no){const id=(ok||no).dataset.ok||(ok||no).dataset.no,d=S.queue.find(x=>x.id===id),note=($('note-'+id)||{}).value||'';S.queue=S.queue.filter(x=>x.id!==id);
+    d.verdict=ok?'pass':'block';d.why=(ok?'سمح به المشغّل بعد المراجعة. ':'منعه المشغّل بعد المراجعة. ')+d.why;await seal(d,d.verdict,'المشغّل (مراجعة بشرية)',note);toast(ok?'نُفّذ بعد موافقتك وخُتم في السجل':'مُنع وخُتم في السجل');renderStream();renderQueue();renderKpis()}});
+document.addEventListener('keydown',e=>{const li=e.target.closest&&e.target.closest('.stream li');if(li&&(e.key==='Enter'||e.key===' ')){e.preventDefault();li.click()}});
+$('pause').addEventListener('click',()=>{S.paused=!S.paused;$('pause').setAttribute('aria-pressed',S.paused);$('pause').textContent=S.paused?'استئناف':'إيقاف مؤقت'});
+$('attack').addEventListener('click',()=>{S.attack=4;$('sys').classList.add('alarm');$('sys').querySelector('span').textContent='ATTACK SIMULATED';setTimeout(()=>{$('sys').classList.remove('alarm');$('sys').querySelector('span').textContent='LIVE · SIMULATION'},9000);
+  drift();toast('زُوّرت قراءة حرارة البطارية: المصدر أ يقول 38°C');setTimeout(()=>examine(make(SRC[0])),400);location.hash='gate'});
+$('verify').addEventListener('click',async()=>{let prev='0'.repeat(64),broken=-1;for(let i=0;i<S.ledger.length;i++){const r=S.ledger[i];const h=await sha(prev+r.body);if(h!==r.hash||r.prev!==prev){broken=i;break}prev=r.hash}
+  renderLedger(broken);const m=$('lMsg');if(broken>-1){m.className='msg bad';m.textContent='السلسلة مكسورة عند السجل #'+(broken+1)}else{m.className='msg ok';m.textContent='SHA-256 · '+S.ledger.length+' سجلًا سليمًا'}});
+$('tamper').addEventListener('click',()=>{if(S.ledger.length<2)return toast('انتظر حتى تُختم بعض القرارات');const r=S.ledger[Math.max(0,S.ledger.length-4)];r.body=r.body.replace(/(\d+) MW/,(m,n)=>(+n+20)+' MW');r.title=r.title.replace(/(\d+) MW/,(m,n)=>(+n+20)+' MW');renderLedger();toast('عُدّل سجل قديم. اضغط «تحقق من السلسلة»')});
+const bind=(id,out,fn)=>$(id).addEventListener('input',e=>{$(out).textContent=fn(+e.target.value);renderAssets()});
+bind('pTemp','vTemp',v=>(POL.temp=v)+' °C');bind('pDiff','vDiff',v=>(POL.diff=v)+'%');bind('pConf','vConf',v=>(POL.conf=v)+'%');
+[['pHuman','human'],['pTwo','two'],['pOn','on']].forEach(([id,k])=>$(id).addEventListener('change',e=>{POL[k]=e.target.checked;toast((e.target.checked?'فُعّل: ':'أُوقف: ')+e.target.closest('label').querySelector('span').firstChild.textContent.trim())}));
+addEventListener('resize',()=>{if(!$('v-detail').hidden)drawSim(S.sel)});
+
+/* boot: seed a few decisions, including the three from the pitch */
+(async()=>{
+  const seed=[[SRC[1],8,'pass'],[SRC[2],12,'hold'],[SRC[0],35,'block']];
+  for(const [s] of seed){drift();}
+  A.bat.a=71.1;A.bat.b=64.2;let d=make(SRC[0]);d.act='تفريغ 35 MW';d.mw=35;judge(d);land(d);
+  A.bat.a=39;A.bat.b=39.2;
+  d=make(SRC[1]);land(d);d=make(SRC[2]);d.conf=71;judge(d);land(d);
+  for(let i=0;i<5;i++){drift();land(make())}
+  route();examine(S.list[0]);
+  setInterval(()=>{$('clock').textContent=t()},1000);
+  setInterval(()=>{if(S.paused||document.hidden)return;drift();examine(make())},RM?6000:3600);
+})();
+})();
+</script>
+</body>
+</html>
