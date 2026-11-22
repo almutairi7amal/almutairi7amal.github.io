@@ -1,98 +1,370 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en" dir="ltr" data-l="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>أمل المطيري · Amal Almutairi</title>
-<meta name="description" content="أمل المطيري، أخصائية ذكاء اصطناعي. مشاريع في الطاقة والأمن والقرار الآلي: أُفق وبُرهان.">
+<title>Amal Almutairi · AI Specialist</title>
+<meta name="description" content="Amal Almutairi, AI specialist. Computer vision, AI decision systems and robotics for energy, water and agriculture in Saudi Arabia.">
+<meta property="og:title" content="Amal Almutairi · AI Specialist">
+<meta property="og:description" content="Computer vision, AI decision systems and robotics for energy, water and agriculture.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@300;800;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Noto+Kufi+Arabic:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* Layout idea: an index of work. Name large, then each project as a full-width row that previews its own world (night desert for OFOQ, paper file for BURHAN). */
+/* Layout idea: a lab notebook. A large name, two case files pinned on top, then every build logged in order, oldest first, each line carrying its date, its role and its proof. */
 :root{
-  --bg:#0B0C0E;--ink:#F2EFE9;--dim:#9EA3AB;--line:rgba(242,239,233,.14);
-  --ofoq:#FFB238;--burhan:#D3311F;
-  --kufi:"Noto Kufi Arabic","IBM Plex Sans Arabic",system-ui,sans-serif;--body:"IBM Plex Sans Arabic",system-ui,"Segoe UI",Tahoma,sans-serif;--mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
-  color-scheme:dark;
+  --paper:#F3F0E8;      /* page */
+  --card:#FBFAF6;       /* raised */
+  --ink:#15140F;        /* text */
+  --mute:#5D5A52;       /* secondary text, 6.6:1 */
+  --rule:#D8D2C4;       /* lines */
+  --cobalt:#2340C9;     /* accent: links, focus, markers */
+  --ofoq:#C97A00;--burhan:#C42D1C;--water:#1C6FB8;--agri:#2F7A3E;--robot:#5B3FB3;
+  --display:"Fraunces",Georgia,serif;
+  --sans:"IBM Plex Sans","IBM Plex Sans Arabic",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
 }
+html[data-l="ar"]{--display:"Noto Kufi Arabic","IBM Plex Sans Arabic",sans-serif;--sans:"IBM Plex Sans Arabic","IBM Plex Sans",system-ui,sans-serif}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.7;-webkit-font-smoothing:antialiased}
-::selection{background:var(--ofoq);color:#111}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--paper)}
 a{color:inherit}
-:focus-visible{outline:2px solid var(--ofoq);outline-offset:3px}
+img{max-width:100%;height:auto;display:block}
+:focus-visible{outline:2px solid var(--cobalt);outline-offset:3px;border-radius:4px}
+h1,h2,h3{margin:0;font-family:var(--display);font-weight:500;line-height:1.15;text-wrap:balance}
+p{margin:0}
 .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
-.mono{font-family:var(--mono);direction:ltr;unicode-bidi:isolate}
-header{padding:80px 0 60px;border-bottom:1px solid var(--line)}
-h1{font-family:var(--kufi);font-weight:900;font-size:clamp(64px,11vw,160px);line-height:1.1;margin:0}
-.en{font-family:var(--mono);font-size:clamp(14px,1.6vw,20px);letter-spacing:.3em;color:var(--dim);margin-top:6px}
-.role{font-family:var(--kufi);font-weight:300;font-size:clamp(22px,2.6vw,34px);margin-top:26px;max-width:28ch}
-.role b{font-weight:800}
-.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
-.links a{display:inline-flex;align-items:center;min-height:44px;padding:8px 18px;border:1px solid var(--line);border-radius:999px;text-decoration:none;font-size:15px;transition:border-color .2s}
-.links a:hover{border-color:var(--ink)}
-h2{font-family:var(--kufi);font-weight:800;font-size:15px;color:var(--dim);margin:56px 0 18px}
-.proj{display:grid;grid-template-columns:1.2fr 1fr;gap:0;border:1px solid var(--line);border-radius:22px;overflow:hidden;margin-bottom:22px;text-decoration:none;transition:transform .3s cubic-bezier(.2,.8,.2,1),border-color .3s}
-.proj:hover{transform:translateY(-4px);border-color:rgba(242,239,233,.35)}
-.proj .art{position:relative;min-height:300px}
-.proj .txt{padding:34px;display:flex;flex-direction:column;gap:12px}
-.proj h3{font-family:var(--kufi);font-weight:900;font-size:clamp(40px,5vw,64px);line-height:1.15;margin:0}
-.proj p{color:var(--dim)}
-.meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
-.meta span{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:3px 12px}
-.go{display:flex;gap:16px;flex-wrap:wrap;font-weight:600}
-.go span{border-bottom:1px solid currentColor}
-/* OFOQ art: desert at dusk */
-.ofoq .art{background:linear-gradient(180deg,#1a2552 0%,#c8705a 62%,#f3c48a 72%,#8a5a3a 72%,#3a2418 100%)}
-.ofoq .art::before{content:"";position:absolute;width:70px;height:70px;border-radius:50%;background:#FFD27A;left:42%;top:46%;box-shadow:0 0 80px 30px rgba(255,190,110,.45)}
-.ofoq .art::after{content:"";position:absolute;inset:auto 0 0 0;height:30%;background:radial-gradient(120% 90% at 30% 0%,#a8703f 40%,transparent 41%),radial-gradient(120% 90% at 80% 10%,#7a4b2c 45%,transparent 46%)}
+.mono{font-family:var(--mono);font-size:13px;letter-spacing:.02em}
+html[data-l="en"] [lang="ar"]:not(html),html[data-l="ar"] [lang="en"]:not(html){display:none!important}
+html[data-l="ar"] .mono,.ltr{direction:ltr;unicode-bidi:isolate}
+
+/* top */
+.top{position:sticky;top:0;z-index:10;background:rgba(243,240,232,.9);backdrop-filter:blur(8px);border-bottom:1px solid var(--rule)}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;height:60px}
+.top b{font-family:var(--display);font-weight:500;font-size:19px}
+.top nav{display:flex;gap:4px;align-items:center}
+.top nav a{text-decoration:none;font-size:15px;color:var(--mute);padding:8px 12px;border-radius:999px;min-height:40px;display:inline-flex;align-items:center}
+.top nav a:hover{color:var(--ink);background:rgba(21,20,15,.05)}
+.lang{border:1px solid var(--ink);background:transparent;border-radius:999px;padding:6px 14px;min-height:36px;cursor:pointer;font:inherit;font-size:14px;color:var(--ink)}
+.lang:hover{background:var(--ink);color:var(--paper)}
+
+/* hero */
+.hero{padding:88px 0 64px;border-bottom:1px solid var(--rule)}
+.hero-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:56px;align-items:end}
+.hero h1{font-size:clamp(64px,10vw,150px);font-weight:300;letter-spacing:-.02em;line-height:.95}
+html[data-l="ar"] .hero h1{font-weight:900;letter-spacing:0;line-height:1.2}
+.hero h1 em{font-style:italic;font-weight:500}
+.role{margin-top:22px;font-size:clamp(20px,2vw,26px);max-width:30ch;line-height:1.45}
+.role b{font-weight:600}
+.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:10px 20px;border-radius:999px;border:1px solid var(--ink);text-decoration:none;font-weight:500;font-size:15px;transition:background .15s,color .15s}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn.solid{background:var(--ink);color:var(--paper)}
+.btn.solid:hover{background:var(--cobalt);border-color:var(--cobalt)}
+.facts{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--ink)}
+.facts div{padding:16px 0;border-bottom:1px solid var(--rule)}
+.facts div:nth-child(odd){padding-inline-end:16px;border-inline-end:1px solid var(--rule)}
+.facts div:nth-child(even){padding-inline-start:16px}
+.facts b{display:block;font-family:var(--display);font-weight:500;font-size:38px;line-height:1.1;font-variant-numeric:lining-nums}
+.facts span{font-size:14px;color:var(--mute)}
+
+/* section heads */
+section{padding:84px 0}
+.head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:36px}
+.head h2{font-size:clamp(36px,4.6vw,60px)}
+.head p{color:var(--mute);max-width:46ch}
+
+/* featured */
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.case{display:grid;grid-template-rows:auto 1fr;border:1px solid var(--ink);border-radius:18px;overflow:hidden;background:var(--card);text-decoration:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+.case:hover{transform:translateY(-4px);box-shadow:0 22px 40px -28px rgba(0,0,0,.45)}
+.case .art{height:260px;position:relative;overflow:hidden;border-bottom:1px solid var(--ink)}
+.case .body{padding:24px;display:grid;gap:10px;align-content:start}
+.case h3{font-size:40px}
+.case .sub{color:var(--mute)}
+.case .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.tag{font-size:13px;border:1px solid var(--rule);border-radius:999px;padding:2px 10px;background:var(--paper)}
+.case .go{display:flex;gap:18px;font-weight:600;margin-top:8px}
+.case .go span{border-bottom:1.5px solid currentColor}
+.ofoq .art{background:linear-gradient(180deg,#1a2552 0%,#c8705a 60%,#f3c48a 70%,#8a5a3a 70%,#2a1810 100%)}
+.ofoq .art::before{content:"";position:absolute;width:64px;height:64px;border-radius:50%;background:#FFD27A;left:46%;top:44%;box-shadow:0 0 70px 26px rgba(255,190,110,.45)}
+.ofoq .art::after{content:"أُفق";position:absolute;inset-inline-start:22px;bottom:14px;font-family:"Noto Kufi Arabic";font-weight:900;font-size:58px;color:#F3EEE6}
 .ofoq h3,.ofoq .go{color:var(--ofoq)}
-/* BURHAN art: paper file with a stamp */
-.burhan .art{background:#EEE9DF;background-image:repeating-linear-gradient(transparent 0 27px,rgba(20,20,20,.08) 27px 28px);display:grid;place-items:center}
-.burhan .art div{font-family:var(--kufi);font-weight:900;font-size:64px;color:var(--burhan);border:5px solid var(--burhan);border-radius:10px;padding:0 22px 6px;transform:rotate(-12deg);opacity:.9}
-.burhan h3,.burhan .go{color:#ff6b5b}
-footer{border-top:1px solid var(--line);margin-top:60px;padding:26px 0 40px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;color:var(--dim);font-size:14px}
-@media (max-width:820px){.proj{grid-template-columns:1fr}.proj .art{min-height:200px}}
-@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.burhan .art{background:#EEE9DF;background-image:repeating-linear-gradient(transparent 0 25px,rgba(20,20,20,.08) 25px 26px);display:grid;place-items:center}
+.burhan .art b{font-family:"Noto Kufi Arabic";font-weight:900;font-size:60px;color:var(--burhan);border:5px solid var(--burhan);border-radius:10px;padding:0 22px 8px;transform:rotate(-11deg)}
+.burhan h3,.burhan .go{color:var(--burhan)}
+
+/* log */
+.log{border-top:1px solid var(--ink)}
+.entry{display:grid;grid-template-columns:150px 1fr 300px;gap:28px;padding:30px 0;border-bottom:1px solid var(--rule);align-items:start}
+.entry .when{font-family:var(--mono);font-size:14px;color:var(--mute);line-height:1.5;padding-top:6px}
+.entry .when b{display:block;color:var(--ink);font-weight:500;font-size:15px}
+.entry .when i{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-inline-end:8px;vertical-align:1px}
+.entry h3{font-size:28px}
+.entry h3 small{font-family:var(--sans);font-size:15px;font-weight:500;color:var(--mute);margin-inline-start:8px}
+.entry .ev{margin-top:4px;font-size:15px;color:var(--c);font-weight:600}
+.entry .what{margin-top:10px;max-width:62ch}
+.entry ul{margin:10px 0 0;padding-inline-start:18px;display:grid;gap:4px;max-width:64ch}
+.entry li::marker{color:var(--c)}
+.entry .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.entry .lnk{display:flex;gap:16px;margin-top:12px;font-weight:600;font-size:15px}
+.entry .lnk a{text-decoration:none;border-bottom:1.5px solid currentColor;color:var(--c)}
+.entry figure{margin:0;border-radius:12px;overflow:hidden;border:1px solid var(--rule);background:#e9e5da}
+.entry figure img{width:100%;height:200px;object-fit:cover}
+.entry figure.pair{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+.entry figure.pair img{height:200px}
+.entry figure.blank{height:200px;display:grid;place-items:center;font-family:var(--display);font-size:44px;color:var(--c);background:var(--card)}
+.badge{display:inline-block;font-family:var(--mono);font-size:12px;background:var(--ink);color:var(--paper);border-radius:6px;padding:2px 8px;margin-inline-start:8px;vertical-align:4px}
+.hl{background:linear-gradient(transparent 60%,color-mix(in srgb,var(--c) 22%,transparent) 60%)}
+
+/* skills */
+.skills{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--ink)}
+.skills div{padding:20px 20px 24px 0;border-bottom:1px solid var(--rule)}
+html[data-l="ar"] .skills div{padding:20px 0 24px 20px}
+.skills h3{font-family:var(--sans);font-weight:600;font-size:16px;margin-bottom:10px}
+.skills p{color:var(--mute);font-size:15px}
+
+/* edu & certs */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.item{border-top:1px solid var(--ink);padding:18px 0}
+.item h3{font-family:var(--sans);font-weight:600;font-size:18px}
+.item p{color:var(--mute);font-size:15px;margin-top:4px}
+
+/* contact */
+.contact{background:var(--ink);color:var(--paper);padding:96px 0 40px}
+.contact h2{font-size:clamp(44px,7vw,104px);font-weight:300}
+html[data-l="ar"] .contact h2{font-weight:900}
+.contact h2 em{font-style:italic}
+.contact .links .btn{border-color:var(--paper);color:var(--paper)}
+.contact .links .btn:hover{background:var(--paper);color:var(--ink)}
+.foot{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:80px;padding-top:18px;border-top:1px solid rgba(243,240,232,.2);font-size:14px;color:#B9B4A8}
+
+@media (max-width:980px){
+  .hero-grid,.feat,.two{grid-template-columns:1fr}
+  .entry{grid-template-columns:1fr;gap:12px}
+  .entry .when{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding:0}
+  .entry .when b{display:inline}
+  .skills{grid-template-columns:1fr 1fr}
+  .top nav a.hide-m{display:none}
+}
+@media (max-width:520px){.wrap{padding:0 18px}section{padding:64px 0}.skills{grid-template-columns:1fr}.case h3{font-size:32px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}html{scroll-behavior:auto}}
 </style>
 </head>
 <body>
-<header>
+
+<header class="top">
   <div class="wrap">
-    <h1>أمل المطيري</h1>
-    <div class="en">AMAL ALMUTAIRI</div>
-    <p class="role">أخصائية <b>ذكاء اصطناعي</b>. أبني أنظمة تجعل القرار الآلي في الطاقة <b>أذكى وأكثر أمانًا.</b></p>
-    <div class="links">
-      <a href="https://github.com/almutairi7amal" target="_blank" rel="noopener">GitHub ↗</a>
-      <a href="#work">المشاريع</a>
-    </div>
+    <b><span lang="en">Amal Almutairi</span><span lang="ar">أمل المطيري</span></b>
+    <nav aria-label="Sections">
+      <a class="hide-m" href="#work"><span lang="en">Work</span><span lang="ar">الأعمال</span></a>
+      <a class="hide-m" href="#log"><span lang="en">Log</span><span lang="ar">السجل</span></a>
+      <a class="hide-m" href="#skills"><span lang="en">Skills</span><span lang="ar">المهارات</span></a>
+      <a class="hide-m" href="#contact"><span lang="en">Contact</span><span lang="ar">تواصل</span></a>
+      <button class="lang" id="lang" type="button" aria-label="Switch language"><span lang="en">العربية</span><span lang="ar">English</span></button>
+    </nav>
   </div>
 </header>
 
-<main class="wrap" id="work">
-  <h2>المشاريع</h2>
-
-  <a class="proj ofoq" href="ofoq/">
-    <div class="art" aria-hidden="true"></div>
-    <div class="txt">
-      <h3>أُفق</h3>
-      <p>طبقة تحكم ذكية تجعل حوسبة الذكاء الاصطناعي تتكيّف مع الشمس: تتنبأ بالإنتاج والطلب، وتجدول الأحمال والتخزين، مع مراجعة بشرية للقرارات الحساسة.</p>
-      <div class="meta"><span>مشروع فردي</span><span>سبتمبر 2026</span><span>طاقة شمسية · مراكز بيانات</span></div>
-      <div class="go"><span>الموقع ←</span><span onclick="event.preventDefault();location.href='ofoq/prototype/'">مركز التحكم ←</span></div>
+<main>
+<section class="hero" aria-labelledby="name">
+  <div class="wrap hero-grid">
+    <div>
+      <p class="mono" style="color:var(--mute)"><span lang="en">AI SPECIALIST · RIYADH, SAUDI ARABIA</span><span lang="ar">أخصائية ذكاء اصطناعي · الرياض</span></p>
+      <h1 id="name" style="margin-top:14px"><span lang="en">Amal<br><em>Almutairi</em></span><span lang="ar">أمل<br>المطيري</span></h1>
+      <p class="role"><span lang="en">I build AI that <b>sees, predicts and decides</b> for the systems Saudi Arabia runs on: energy, water and agriculture.</span><span lang="ar">أبني أنظمة ذكاء اصطناعي <b>ترى وتتنبأ وتقرّر</b> للقطاعات التي تقوم عليها المملكة: الطاقة والمياه والزراعة.</span></p>
+      <div class="links">
+        <a class="btn solid" href="#work"><span lang="en">See the work</span><span lang="ar">شاهد الأعمال</span> ↓</a>
+        <a class="btn" href="https://www.linkedin.com/in/amal-almutairi-4a6633344/" target="_blank" rel="noopener">LinkedIn ↗</a>
+        <a class="btn" href="https://github.com/almutairi7amal" target="_blank" rel="noopener">GitHub ↗</a>
+      </div>
     </div>
-  </a>
-
-  <a class="proj burhan" href="burhan/">
-    <div class="art" aria-hidden="true"><div>مُنع</div></div>
-    <div class="txt">
-      <h3>بُرهان</h3>
-      <p>بوابة تحقق تقف بين القرار الآلي والأصل الفيزيائي: تفحص المصدر والبيانات والصلاحيات، وتحاكي الأثر، ثم تسمح أو تعلّق أو تمنع، مع سجل أدلة لا يُعاد كتابته.</p>
-      <div class="meta"><span>مشروع فردي</span><span>أكتوبر 2026</span><span>SAIF 2026</span><span>أمن سيبراني · طاقة</span></div>
-      <div class="go"><span>الموقع ←</span><span onclick="event.preventDefault();location.href='burhan/prototype/'">غرفة القرار ←</span></div>
+    <div class="facts" aria-label="At a glance">
+      <div><b>8</b><span lang="en">AI &amp; robotics builds</span><span lang="ar">مشاريع ذكاء اصطناعي وروبوتات</span></div>
+      <div><b>3rd</b><span lang="en">of 16 teams, Saudi Games 2023 robotics</span><span lang="ar">من 16 فريقًا، روبوتات دورة الألعاب السعودية</span></div>
+      <div><b>38k+</b><span lang="en">images in a plant-disease vision model</span><span lang="ar">صورة لنموذج رؤية أمراض النبات</span></div>
+      <div><b>4</b><span lang="en">solo projects, idea to prototype</span><span lang="ar">مشاريع فردية من الفكرة للنموذج</span></div>
     </div>
-  </a>
+  </div>
+</section>
+
+<section id="work" aria-labelledby="work-h">
+  <div class="wrap">
+    <div class="head">
+      <h2 id="work-h"><span lang="en">Case studies</span><span lang="ar">دراسات حالة</span></h2>
+      <p><span lang="en">Two solo builds with live sites and working prototypes. Open them.</span><span lang="ar">مشروعان فرديان بموقع حي ونموذج أولي يعمل. افتحهما.</span></p>
+    </div>
+    <div class="feat">
+      <a class="case burhan" href="burhan/">
+        <div class="art" aria-hidden="true"><b>مُنع</b></div>
+        <div class="body">
+          <span class="mono" style="color:var(--mute)">SAIF 2026 · SEP 2026 · SOLO</span>
+          <h3><span lang="en">BURHAN</span><span lang="ar">بُرهان</span></h3>
+          <p class="sub"><span lang="en">A verification gate that checks every automated energy decision before it reaches physical equipment: source, permissions, data quality and simulated impact, then allow, hold for a human, or block. With a tamper-evident SHA-256 evidence ledger.</span><span lang="ar">بوابة تحقق تفحص كل قرار آلي في الطاقة قبل وصوله للمعدّات: المصدر والصلاحيات وجودة البيانات وأثره المحاكى، ثم تسمح أو تعلّق لمراجعة بشرية أو تمنع، مع سجل أدلة مسلسل ببصمات SHA-256.</span></p>
+          <div class="row"><span class="tag">AI Safety</span><span class="tag">Human-in-the-loop</span><span class="tag">OT Security</span><span class="tag">JavaScript</span></div>
+          <div class="go"><span lang="en">Case study →</span><span lang="ar">دراسة الحالة ←</span></div>
+        </div>
+      </a>
+      <a class="case ofoq" href="ofoq/">
+        <div class="art" aria-hidden="true"></div>
+        <div class="body">
+          <span class="mono" style="color:var(--mute)">ENERGY HACKATHON 2026 · AUG–SEP 2026 · SOLO</span>
+          <h3><span lang="en">OFOQ</span><span lang="ar">أُفق</span></h3>
+          <p class="sub"><span lang="en">An orchestration layer that shifts AI data-center compute toward solar hours. Forecasts generation and demand, schedules flexible workloads and storage, and escalates sensitive decisions to a person. Simulated day: 100% solar use vs 78% without it.</span><span lang="ar">طبقة تنسيق تحرّك حوسبة مراكز بيانات الذكاء الاصطناعي إلى ساعات الشمس: تتنبأ بالإنتاج والطلب، وتجدول الأحمال والتخزين، وترفع القرارات الحساسة لإنسان. في يوم محاكى: استغلال شمسي 100% مقابل 78% بدونها.</span></p>
+          <div class="row"><span class="tag">Forecasting</span><span class="tag">Optimization</span><span class="tag">Energy</span><span class="tag">GSAP</span></div>
+          <div class="go"><span lang="en">Case study →</span><span lang="ar">دراسة الحالة ←</span></div>
+        </div>
+      </a>
+    </div>
+  </div>
+</section>
+
+<section id="log" aria-labelledby="log-h" style="padding-top:20px">
+  <div class="wrap">
+    <div class="head">
+      <h2 id="log-h"><span lang="en">Build log</span><span lang="ar">سجل الأعمال</span></h2>
+      <p><span lang="en">Every competition, hackathon and prototype, oldest first.</span><span lang="ar">كل مسابقة وهاكاثون ونموذج أولي، من الأقدم للأحدث.</span></p>
+    </div>
+    <div class="log">
+
+      <article class="entry" style="--c:var(--robot)">
+        <div class="when"><b><i></i>Oct–Dec 2023</b>~2 months · team of 4</div>
+        <div>
+          <h3><span lang="en">FTC Competition Robot</span><span lang="ar">روبوت مسابقة FTC</span><span class="badge">3rd / 16</span></h3>
+          <p class="ev"><span lang="en">FIRST Tech Challenge · Saudi Games 2023, Riyadh</span><span lang="ar">FIRST Tech Challenge · دورة الألعاب السعودية 2023، الرياض</span></p>
+          <p class="what"><span lang="en">Represented Majmaah University and placed <span class="hl">3rd out of 16 university teams</span> from across the Kingdom.</span><span lang="ar">مثّلنا جامعة المجمعة وحققنا <span class="hl">المركز الثالث من بين 16 فريقًا جامعيًا</span> من مختلف مناطق المملكة.</span></p>
+          <ul><li><span lang="en">Team programmer: wrote the robot's control code end to end</span><span lang="ar">مبرمجة الفريق: كتبت برنامج التحكم بالروبوت بالكامل</span></li>
+              <li><span lang="en">Helped build the robot from scratch, then two months of testing and drills</span><span lang="ar">شاركت في بناء الروبوت من الصفر، ثم شهرين من الاختبار والتدريب</span></li></ul>
+          <div class="row"><span class="tag">Robotics</span><span class="tag">Programming</span><span class="tag">Teamwork</span></div>
+        </div>
+        <figure><img src="assets/ftc-ceremony.jpg" width="1400" height="810" alt="Award ceremony of the robotics competition at the Saudi Games 2023 in Riyadh" loading="lazy"></figure>
+      </article>
+
+      <article class="entry" style="--c:var(--cobalt)">
+        <div class="when"><b><i></i>Jan 2025</b>3-day hackathon · team</div>
+        <div>
+          <h3><span lang="en">Mu'een</span><span lang="ar">مُعين</span><small><span lang="en">AI financial assistant</span><span lang="ar">مساعد مالي ذكي</span></small></h3>
+          <p class="ev"><span lang="en">Enjaz Hackathon 2025 · backed by SDAIA, Ministry of Finance, DGA</span><span lang="ar">هاكاثون إنجاز 2025 · بمشاركة سدايا ووزارة المالية وهيئة الحكومة الرقمية</span></p>
+          <p class="what"><span lang="en">An assistant for bank employees that schedules their workload and personalizes service for each client, cutting time spent on repetitive tasks.</span><span lang="ar">مساعد لموظفي البنوك يجدول مهامهم ويخصّص الخدمة لكل عميل، ليقلّ الوقت المصروف على المهام المتكررة.</span></p>
+          <div class="row"><span class="tag">GenAI</span><span class="tag">FinTech</span><span class="tag">Product design</span></div>
+        </div>
+        <figure class="blank" aria-hidden="true">مُعين</figure>
+      </article>
+
+      <article class="entry" style="--c:var(--agri)">
+        <div class="when"><b><i></i>Feb–Apr 2026</b>~2 months · technical lead · team of 2</div>
+        <div>
+          <h3><span lang="en">Rouyan</span><span lang="ar">رويان</span><small><span lang="en">AI agricultural robot</span><span lang="ar">روبوت زراعي ذكي</span></small></h3>
+          <p class="ev"><span lang="en">UNITHON 2026 · King Faisal University · with IEEE ICMI 2026</span><span lang="ar">يونيثون 2026 · جامعة الملك فيصل · ضمن IEEE ICMI 2026</span></p>
+          <ul><li><span lang="en">Trained and integrated a computer-vision model on <span class="hl">38,000+ images</span> to detect plant diseases and pests</span><span lang="ar">دربت ودمجت نموذج رؤية حاسوبية على <span class="hl">أكثر من 38,000 صورة</span> لاكتشاف أمراض وآفات النبات</span></li>
+              <li><span lang="en">Programmed the robot: ESP32-CAM, sensors, and the model running on live frames</span><span lang="ar">برمجت الروبوت: كاميرا ESP32 والحساسات وتشغيل النموذج على الصور الحية</span></li>
+              <li><span lang="en">Live dashboard with disease, confidence and treatment advice</span><span lang="ar">لوحة تحكم فورية تعرض المرض ونسبة الثقة وتوصية العلاج</span></li>
+              <li><span lang="en">Landing page drew <span class="hl">30+ farms</span>; 70% requested the robot</span><span lang="ar">صفحة المشروع جذبت <span class="hl">أكثر من 30 مزرعة</span>، و70% طلبوا الروبوت</span></li></ul>
+          <div class="row"><span class="tag">Computer Vision</span><span class="tag">Deep Learning</span><span class="tag">Python</span><span class="tag">ESP32</span><span class="tag">IoT</span></div>
+        </div>
+        <figure class="pair"><img src="assets/rouyan-robot.jpg" width="1000" height="1173" alt="Rouyan robot prototype on display at UNITHON 2026" loading="lazy"><img src="assets/rouyan-detect.jpg" width="374" height="644" alt="Rouyan dashboard detecting Septoria leaf disease" loading="lazy"></figure>
+      </article>
+
+      <article class="entry" style="--c:var(--ofoq)">
+        <div class="when"><b><i></i>Aug–Sep 2026</b>3 weeks · solo</div>
+        <div>
+          <h3><span lang="en">OFOQ</span><span lang="ar">أُفق</span><small><span lang="en">solar-aware AI compute</span><span lang="ar">حوسبة تتكيّف مع الشمس</span></small></h3>
+          <p class="ev"><span lang="en">Built for the Energy Hackathon 2026 · Ministry of Energy</span><span lang="ar">بُني لهاكاثون الطاقة 2026 · وزارة الطاقة</span></p>
+          <p class="what"><span lang="en">Forecasts solar output and demand, then schedules flexible AI workloads, storage and cooling around them. Includes an 8-view control-center prototype with a human-review queue.</span><span lang="ar">يتنبأ بالإنتاج الشمسي والطلب، ثم يجدول أحمال الذكاء الاصطناعي المرنة والتخزين والتبريد حولها. مع نموذج أولي لمركز تحكم من 8 شاشات وطابور مراجعة بشرية.</span></p>
+          <div class="row"><span class="tag">Forecasting</span><span class="tag">Scheduling</span><span class="tag">Simulation</span></div>
+          <div class="lnk"><a href="ofoq/"><span lang="en">Site</span><span lang="ar">الموقع</span> ↗</a><a href="ofoq/prototype/"><span lang="en">Prototype</span><span lang="ar">النموذج</span> ↗</a></div>
+        </div>
+        <figure><img src="assets/ofoq-proto.jpg" width="1888" height="779" alt="OFOQ control dashboard: solar generation, demand, battery and compute load" loading="lazy"></figure>
+      </article>
+
+      <article class="entry" style="--c:var(--water)">
+        <div class="when"><b><i></i>Sep 2026</b>~4 weeks · solo</div>
+        <div>
+          <h3><span lang="en">Dr.DAM</span><span lang="ar">Dr.DAM</span><small><span lang="en">AI early warning for dams</span><span lang="ar">إنذار مبكر ذكي للسدود</span></small></h3>
+          <p class="ev"><span lang="en">Built for MiyahThon 3 · Saudi Water Innovation Center</span><span lang="ar">بُني لمياهثون 3 · مركز الابتكار السعودي لتقنيات المياه</span></p>
+          <ul><li><span lang="en">Computer-vision crack detection on dam surfaces, with severity and location per crack</span><span lang="ar">اكتشاف التشققات بالرؤية الحاسوبية على جسم السد، مع درجة الخطورة وموقع كل شق</span></li>
+              <li><span lang="en">Anomaly detection across vibration, water level and pressure, rolled into one risk score</span><span lang="ar">رصد الأنماط غير الطبيعية في الاهتزاز والمنسوب والضغط، مجمّعة في درجة خطورة واحدة</span></li>
+              <li><span lang="en">Smart map with costed intervention options for the operator to approve</span><span lang="ar">خريطة ذكية بخيارات تدخّل مسعّرة يوافق عليها المشغّل</span></li></ul>
+          <div class="row"><span class="tag">Computer Vision</span><span class="tag">Anomaly Detection</span><span class="tag">Risk Scoring</span><span class="tag">Water</span></div>
+        </div>
+        <figure><img src="assets/drdam-crack.jpg" width="1287" height="730" alt="Dr.DAM crack detection view highlighting cracks on a dam wall" loading="lazy"></figure>
+      </article>
+
+      <article class="entry" style="--c:var(--burhan)">
+        <div class="when"><b><i></i>Sep 2026</b>4 weeks · solo</div>
+        <div>
+          <h3><span lang="en">BURHAN</span><span lang="ar">بُرهان</span><small><span lang="en">decision verification gate</span><span lang="ar">بوابة تحقق من القرارات</span></small></h3>
+          <p class="ev"><span lang="en">Built for SAIF 2026 · Security and Innovation Fair</span><span lang="ar">بُني لمعرض SAIF 2026 للأمن والابتكار</span></p>
+          <p class="what"><span lang="en">Eight checks before any automated action reaches equipment, three verdicts, and a hash-chained ledger that exposes any edit to past records. The prototype includes a live gate, operator review and a reading-spoofing attack you can trigger.</span><span lang="ar">ثمانية فحوص قبل أن يصل أي إجراء آلي للمعدّات، وثلاثة أحكام، وسجل مسلسل بالبصمات يكشف أي تعديل على السجلات القديمة. والنموذج فيه بوابة حية ومراجعة بشرية وهجوم تزوير قراءة تقدر تشغّله.</span></p>
+          <div class="row"><span class="tag">AI Safety</span><span class="tag">SHA-256</span><span class="tag">OT Security</span></div>
+          <div class="lnk"><a href="burhan/"><span lang="en">Site</span><span lang="ar">الموقع</span> ↗</a><a href="burhan/prototype/"><span lang="en">Prototype</span><span lang="ar">النموذج</span> ↗</a></div>
+        </div>
+        <figure class="blank" style="background:#EEE9DF" aria-hidden="true"><span style="border:4px solid currentColor;border-radius:8px;padding:0 14px 6px;transform:rotate(-10deg);font-family:'Noto Kufi Arabic';font-weight:900">مُنع</span></figure>
+      </article>
+
+      <article class="entry" style="--c:#8A5A1F">
+        <div class="when"><b><i></i>Nov 2026</b>hackathon week · team</div>
+        <div>
+          <h3><span lang="en">Tamrah</span><span lang="ar">تمرة</span><small><span lang="en">date-palm ripeness tracking</span><span lang="ar">متابعة نضج التمر</span></small></h3>
+          <p class="ev"><span lang="en">Food Security &amp; Environmental Sustainability Hackathon 3 · King Faisal University</span><span lang="ar">هاكاثون الأمن الغذائي والاستدامة البيئية 3 · جامعة الملك فيصل</span></p>
+          <p class="what"><span lang="en">Photo-based ripeness estimation for date palms by variety, combined with live field-sensor readings and a per-palm history.</span><span lang="ar">تقدير نضج التمر من الصورة حسب الصنف، مع قراءات حساسات حية من المزرعة وسجل لكل نخلة.</span></p>
+          <div class="row"><span class="tag">Computer Vision</span><span class="tag">IoT</span><span class="tag">AgriTech</span></div>
+          <div class="lnk"><a href="https://tamrah-showcase.f-fatimah8719.workers.dev/" target="_blank" rel="noopener"><span lang="en">Live app</span><span lang="ar">التطبيق</span> ↗</a></div>
+        </div>
+        <figure class="blank" aria-hidden="true">تمرة</figure>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<section id="skills" aria-labelledby="sk-h" style="padding-top:20px">
+  <div class="wrap">
+    <div class="head"><h2 id="sk-h"><span lang="en">Toolkit</span><span lang="ar">الأدوات</span></h2></div>
+    <div class="skills">
+      <div><h3>AI &amp; ML</h3><p>Computer vision · Deep learning · Anomaly detection · Forecasting · Risk scoring · LLM-assisted prototyping</p></div>
+      <div><h3><span lang="en">Engineering</span><span lang="ar">البرمجة</span></h3><p>Python · JavaScript · HTML/CSS · Git &amp; GitHub · REST dashboards</p></div>
+      <div><h3><span lang="en">Hardware</span><span lang="ar">العتاد</span></h3><p>ESP32 / ESP32-CAM · Sensors · FTC robotics · Drone fundamentals</p></div>
+      <div><h3><span lang="en">Product</span><span lang="ar">المنتج</span></h3><p>Problem framing · Rapid prototyping · Demand validation · Pitching</p></div>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="ed-h" style="padding-top:20px">
+  <div class="wrap two">
+    <div>
+      <div class="head" style="margin-bottom:20px"><h2 id="ed-h"><span lang="en">Education</span><span lang="ar">التعليم</span></h2></div>
+      <div class="item"><h3><span lang="en">B.Sc. Artificial Intelligence</span><span lang="ar">بكالوريوس الذكاء الاصطناعي</span></h3><p><span lang="en">Majmaah University · Robotics engineering, machine learning, smart systems</span><span lang="ar">جامعة المجمعة · هندسة الروبوتات، تعلم الآلة، الأنظمة الذكية</span></p></div>
+    </div>
+    <div>
+      <div class="head" style="margin-bottom:20px"><h2><span lang="en">Training</span><span lang="ar">التدريب</span></h2></div>
+      <div class="item"><h3><span lang="en">MiyahThon 3 Digital Bootcamp</span><span lang="ar">المعسكر الرقمي لمياهثون 3</span></h3><p><span lang="en">Saudi Water Innovation Center · Sep 2026</span><span lang="ar">مركز الابتكار السعودي لتقنيات المياه · سبتمبر 2026</span></p></div>
+      <div class="item"><h3><span lang="en">Fundamentals of Drone Flight · 12 h</span><span lang="ar">أساسيات الطيران اللاسلكي · 12 ساعة</span></h3><p><span lang="en">Leaders Development Institute, Ministry of Sport · Nov 2024</span><span lang="ar">معهد إعداد القادة، وزارة الرياضة · نوفمبر 2024</span></p></div>
+    </div>
+  </div>
+</section>
 </main>
 
-<footer class="wrap"><span>© 2026 أمل المطيري</span><span class="mono">almutairi7amal.github.io</span></footer>
+<footer class="contact" id="contact" aria-labelledby="ct-h">
+  <div class="wrap">
+    <h2 id="ct-h"><span lang="en">Let's build<br><em>something useful.</em></span><span lang="ar">لنبنِ شيئًا<br>يُحدث فرقًا.</span></h2>
+    <p style="margin-top:20px;color:#CFCABE;max-width:52ch"><span lang="en">Open to AI internships and roles in Saudi Arabia, on-site, hybrid or remote.</span><span lang="ar">متاحة لفرص التدريب والعمل في الذكاء الاصطناعي في المملكة، حضوريًا أو هجينًا أو عن بُعد.</span></p>
+    <div class="links">
+      <a class="btn" href="mailto:Almutiriamal4@gmail.com">Almutiriamal4@gmail.com</a>
+      <a class="btn" href="https://www.linkedin.com/in/amal-almutairi-4a6633344/" target="_blank" rel="noopener">LinkedIn ↗</a>
+      <a class="btn" href="https://github.com/almutairi7amal" target="_blank" rel="noopener">GitHub ↗</a>
+    </div>
+    <div class="foot"><span>© 2026 Amal Almutairi · أمل المطيري</span><span class="mono ltr">almutairi7amal.github.io</span></div>
+  </div>
+</footer>
+
+<script>
+(()=>{const h=document.documentElement,b=document.getElementById('lang');
+function set(l){h.dataset.l=l;h.lang=l;h.dir=l==='ar'?'rtl':'ltr';try{localStorage.setItem('l',l)}catch(e){}}
+let s=null;try{s=localStorage.getItem('l')}catch(e){}
+if(s)set(s);b.addEventListener('click',()=>set(h.dataset.l==='ar'?'en':'ar'));})();
+</script>
 </body>
 </html>
