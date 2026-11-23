@@ -9,7 +9,7 @@ AI Specialist · Machine Learning · Computer Vision · Robotics. Portfolio: **h
 | Oct–Dec 2023 | **FTC Competition Robot** · 3rd of 16 | FIRST Tech Challenge, Saudi Federation for Robotics & Wireless Sports, Saudi Games 2023 | Team of 4 (Majmaah University) · programmer |
 | Jan 2025 | **Qariboon · قريبون** · AI for local-government finance | Enjaz Hackathon 2025 | Team of 3 · pitch & design |
 | Feb–Apr 2026 | **Rouyan · رويان** · AI agricultural robot | UNITHON 2026, King Faisal University (IEEE ICMI 2026) | Team of 2 · technical lead |
-| Apr–Jun 2026 | **Smart Glasses + Smart Braille Keyboard** · assistive AI (my part: Braille keyboard concept) | Umm Al-Qura University Hackathon · nominated, International Competition on AI in Education, Hong Kong | Team of 2 |
+| Mar–Jun 2026 | **Smart Glasses + Smart Braille Keyboard** · assistive AI (my part: Braille keyboard concept) | International Competition on AI in Education 2026 (Umm Al-Qura University × EdUHK) · nominee | Team of 2 |
 | Aug–Sep 2026 | **OFOQ · أُفق** · solar-aware orchestration for AI data centers · [site](https://almutairi7amal.github.io/ofoq/) · [prototype](https://almutairi7amal.github.io/ofoq/prototype/) | Energy Hackathon 2026 | Solo |
 | Aug–Sep 2026 | **Dr.DAM** · AI early warning for dams | MiyahThon 3 | Solo |
 | Sep 2026 | **Rasd · رصد** · energy infrastructure monitoring from space | Energy Hackathon 2026 | Team of 2 · co-developer |
